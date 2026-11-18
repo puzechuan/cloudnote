@@ -1888,6 +1888,13 @@ document.addEventListener('DOMContentLoaded', () => {
   contentTextarea.addEventListener('contextmenu', (event) => {
     if (contentTextarea.disabled) return;
 
+    // 移动端长按不弹出自定义的剪切/复制/粘贴菜单，交还给系统做文字选择。
+    // 目录栏的长按菜单不受影响。
+    if (window.matchMedia('(hover: none), (pointer: coarse)').matches) {
+      closeEditorMenu();
+      return;
+    }
+
     event.preventDefault();
     event.stopPropagation();
 

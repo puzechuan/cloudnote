@@ -24,7 +24,6 @@
 		{
 			"binding": "DB",
 			"database_name": "cloudnote-db",
-			// database_id 由 Deploy Button / Wrangler 自动创建并写回，不要写死账号相关 ID。
 			"remote": false
 		}
 	],
