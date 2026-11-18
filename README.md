@@ -109,6 +109,8 @@ npm run dev
 
 ## 一键部署到 Cloudflare（无需本地下载）
 
+### 首先点击部署
+
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/puzechuan/cloudnote)
 
 
