@@ -143,6 +143,10 @@ https://deploy.workers.cloudflare.com/?url=https://github.com/<your-github-usern
 4. 执行 `npm run deploy`：先初始化数据库，再部署 Worker
 5. 完成后给出可访问的地址
 
+> **Deploy command 必须是 `npm run deploy`**。如果部署页显示的是 `npx wrangler deploy`，请改成 `npm run deploy`，否则数据库不会被初始化。
+>
+> 仓库中的 `wrangler.jsonc` 不再写死 `database_id`，D1 由 Cloudflare 在部署时自动创建并写回。Fork 里如果仍能看到旧的 `database_id`，说明 Fork 是旧版本，请 Sync fork 或重新 Fork。
+
 **不需要先 clone 或下载项目到本地。**
 
 要求：
@@ -489,9 +493,31 @@ npx wrangler d1 execute DB --local --yes --command "UPDATE users SET password_ha
 
 > 该哈希对应密码 `123456aaa`，仅用于初始化；请登录后立即修改。
 
-### 部署后提示 database not found / 无法绑定 D1
+### Deploy Button 报错 10181：D1 数据库不存在
 
-`wrangler.jsonc` 里的 `database_id` 还是开发环境的值。替换成你自己 D1 的 ID 后重新部署。
+错误示例：
+
+```text
+D1 绑定“DB”引用了数据库“a04ffc17-...”，但未找到该数据库
+```
+
+原因：Fork 里的 `wrangler.jsonc` 还带着原作者的 `database_id`，Cloudflare 没有自动创建新 D1。
+
+修复：
+
+1. 确认原仓库已更新，然后对你的 Fork 执行 **Sync fork**，或重新 Fork
+2. 确认 `wrangler.jsonc` 的 `d1_databases` 中没有 `database_id`，只保留 `binding` 和 `database_name`
+3. 在部署页中让 Cloudflare 新建 D1，不要沿用旧 ID
+4. 确认 Deploy command 是 `npm run deploy`
+5. 重新部署
+
+如果部署成功但注册时报 `no such table: captchas`，说明 Deploy command 用了默认的 `npx wrangler deploy`，没有执行数据库初始化；改成 `npm run deploy` 后重新部署。
+
+### 手动 CLI 部署提示 database not found
+
+如果你不使用 Deploy Button，而是手动执行 `npm run deploy`，需要先创建 D1，并把 `database_id` 填入 `wrangler.jsonc`。
+
+Deploy Button 会自动创建 D1；本地 CLI 也可以直接使用 `npm run deploy:auto`。
 
 ### 本地验证码图片不显示
 

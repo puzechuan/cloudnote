@@ -59,10 +59,19 @@ function updateConfigDatabaseId(id) {
   const config = readConfig();
   if (config.databaseId === id) return;
 
-  const next = config.text.replace(
-    /("database_id"\s*:\s*")[^"]*(")/,
-    `$1${id}$2`
-  );
+  let next;
+  if (config.databaseId) {
+    next = config.text.replace(
+      /("database_id"\s*:\s*")[^"]*(")/,
+      `$1${id}$2`
+    );
+  } else {
+    next = config.text.replace(
+      /("database_name"\s*:\s*"[^"]+")/,
+      `$1,\n      "database_id": "${id}"`
+    );
+  }
+
   if (next === config.text) {
     fail('无法自动写入 database_id，请手动修改 wrangler.jsonc');
   }
