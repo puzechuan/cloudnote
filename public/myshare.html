@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#080808" media="(prefers-color-scheme: dark)">
+  <title>我的分享 · cloudnote</title>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <header class="app-bar">
+    <div class="app-bar-left">
+      <a class="brand" href="/" aria-label="cloudnote 首页">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name">cloudnote</span>
+      </a>
+      <span class="app-bar-sep" aria-hidden="true"></span>
+      <span class="app-bar-title">我的分享</span>
+    </div>
+    <div class="app-bar-right">
+      <span class="account-pill" id="accountName" hidden></span>
+      <a class="top-link" href="/">返回笔记</a>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="page-head">
+      <div class="page-heading">
+        <h1 class="page-title">我的分享</h1>
+        <p class="page-subtitle">管理你创建的公开链接，可随时复制或撤销</p>
+      </div>
+      <div class="page-actions">
+        <span class="count-pill" id="shareCount">—</span>
+        <button class="btn btn-refresh" id="refreshBtn" type="button">刷新</button>
+        <button class="btn btn-clear" id="clearAllBtn" type="button" hidden>全部删除</button>
+      </div>
+    </div>
+
+    <section class="list-card" aria-label="我的分享链接">
+      <div class="list-state" id="listState">
+        <span class="loader" id="stateSpinner"></span>
+        <span id="listStateText">加载分享链接...</span>
+      </div>
+      <div class="share-list" id="shareList" hidden></div>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="revokeModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="revokeTitle">
+      <div class="modal-header">
+        <div class="modal-heading">
+          <p class="modal-eyebrow">撤销分享</p>
+          <h2 class="modal-title" id="revokeTitle">撤销这条分享链接？</h2>
+        </div>
+        <button class="modal-close" id="revokeClose" type="button" aria-label="关闭">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="message" id="revokeMessage">撤销后该链接会立即失效，已打开页面的人刷新后将无法查看。</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="revokeCancel" type="button">取消</button>
+        <button class="btn btn-primary" id="revokeConfirm" type="button">撤销链接</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="clearModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="clearTitle">
+      <div class="modal-header">
+        <div class="modal-heading">
+          <p class="modal-eyebrow">全部删除</p>
+          <h2 class="modal-title" id="clearTitle">删除全部分享链接？</h2>
+        </div>
+        <button class="modal-close" id="clearClose" type="button" aria-label="关闭">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="message" id="clearMessage">删除后所有分享链接会立即失效，且无法恢复。</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="clearCancel" type="button">取消</button>
+        <button class="btn btn-primary" id="clearConfirm" type="button">全部删除</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="expiryModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="expiryTitle">
+      <div class="modal-header">
+        <div class="modal-heading">
+          <p class="modal-eyebrow">分享有效期</p>
+          <h2 class="modal-title" id="expiryTitle">编辑有效期</h2>
+        </div>
+        <button class="modal-close" id="expiryClose" type="button" aria-label="关闭">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="message" id="expiryHint">为这条分享链接设置新的有效期。</p>
+        <div class="expiry-options" id="expiryOptions" role="radiogroup" aria-label="新的有效期">
+          <label class="expiry-option">
+            <input type="radio" name="expiry" value="7">
+            <span>7 天</span>
+          </label>
+          <label class="expiry-option">
+            <input type="radio" name="expiry" value="30">
+            <span>30 天</span>
+          </label>
+          <label class="expiry-option">
+            <input type="radio" name="expiry" value="90">
+            <span>90 天</span>
+          </label>
+          <label class="expiry-option">
+            <input type="radio" name="expiry" value="permanent">
+            <span>永久有效</span>
+          </label>
+          <label class="expiry-option expiry-option-wide">
+            <input type="radio" name="expiry" value="custom">
+            <span>自定义天数</span>
+          </label>
+        </div>
+        <div class="expiry-custom" id="expiryCustom" hidden>
+          <input class="field-input" id="expiryDays" type="number" min="1" max="365" step="1" inputmode="numeric" placeholder="输入 1-365 之间的天数" aria-label="自定义有效天数">
+          <span class="expiry-custom-unit">天</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="expiryCancel" type="button">取消</button>
+        <button class="btn btn-primary" id="expiryConfirm" type="button">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="/js/myshare.js"></script>
+</body>
+</html>

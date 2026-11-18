@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#080808" media="(prefers-color-scheme: dark)">
+  <meta name="robots" content="noindex">
+  <title>页面不存在 · cloudnote</title>
+  <link rel="stylesheet" href="/css/share.css">
+</head>
+<body>
+  <header class="app-bar">
+    <a class="brand" href="/" aria-label="cloudnote 首页">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">cloudnote</span>
+    </a>
+    <a class="top-link" href="/">打开 cloudnote</a>
+  </header>
+
+  <main class="page">
+    <section class="note-card" aria-labelledby="notFoundTitle">
+      <div class="notfound-body">
+        <div class="notfound-code" aria-hidden="true">404</div>
+        <h1 class="notfound-title" id="notFoundTitle" data-share="分享不存在" data-login="需要登录" data-forbidden="权限不足">页面不存在</h1>
+        <p class="notfound-message" id="notFoundMessage" data-share="该分享已经被删除或者不存在。" data-login="请先登录后再访问这个页面。" data-forbidden="你没有权限访问这个页面。">该页面不存在，可能已被移动或删除。</p>
+        <div class="notfound-actions">
+          <a class="notfound-btn primary" id="homeLink" href="/">返回首页</a>
+          <button class="notfound-btn" id="backBtn" type="button">返回上一页</button>
+        </div>
+      </div>
+      <footer class="note-foot">
+        <span class="pill">404</span>
+        <span class="note-foot-brand">cloudnote</span>
+      </footer>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const params = new URLSearchParams(window.location.search);
+      const reason = params.get('reason');
+      const title = document.getElementById('notFoundTitle');
+      const message = document.getElementById('notFoundMessage');
+
+      if (reason === 'share') {
+        title.textContent = title.dataset.share;
+        message.textContent = message.dataset.share;
+        document.title = '分享不存在 · cloudnote';
+      } else if (reason === 'login') {
+        title.textContent = title.dataset.login;
+        message.textContent = message.dataset.login;
+        document.title = '需要登录 · cloudnote';
+        document.getElementById('homeLink').textContent = '去登录';
+      } else if (reason === 'forbidden') {
+        title.textContent = title.dataset.forbidden;
+        message.textContent = message.dataset.forbidden;
+        document.title = '权限不足 · cloudnote';
+      }
+
+      document.getElementById('backBtn').addEventListener('click', () => {
+        if (window.history.length > 1) window.history.back();
+        else window.location.href = '/';
+      });
+    })();
+  </script>
+</body>
+</html>

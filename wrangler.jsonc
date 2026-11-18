@@ -1,0 +1,40 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "cloudnote",
+	"main": "src/index.js",
+	"compatibility_date": "2026-11-16",
+	"assets": {
+		"directory": "./public",
+		"binding": "ASSETS",
+		// 未匹配到静态文件时返回 public/404.html（保持 404 状态码）。
+		"not_found_handling": "404-page",
+		// 这些路径必须先经过 Worker（鉴权 / 动态渲染），其余文件直接由静态资源返回。
+		"run_worker_first": [
+			"/api/*",
+			"/share/*",
+			"/admin",
+			"/admin.html",
+			"/myshare",
+			"/myshare.html",
+			"/404",
+			"/404.html"
+		]
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "cloudnote-db",
+			"database_id": "a04ffc17-78a4-4350-9f88-600a4e40003b",
+			"remote": false
+		}
+	],
+	// 每天 03:00 UTC 清理过期且没有笔记的账号。
+	"triggers": {
+		"crons": [
+			"0 3 * * *"
+		]
+	},
+	"observability": {
+		"enabled": true
+	}
+}

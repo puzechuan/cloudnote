@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#080808" media="(prefers-color-scheme: dark)">
+  <title>cloudnote</title>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <header class="app-bar">
+    <div class="app-bar-left">
+      <a class="brand" href="/" aria-label="cloudnote 首页">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name">cloudnote</span>
+      </a>
+      <span class="app-bar-sep" aria-hidden="true"></span>
+      <span class="app-bar-title">管理员面板</span>
+    </div>
+    <div class="app-bar-right">
+      <span class="account-pill" id="accountName" hidden></span>
+      <a class="top-link" href="/">返回笔记</a>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="page-head">
+      <div class="page-heading">
+        <h1 class="page-title">用户管理</h1>
+      </div>
+      <div class="page-actions">
+        <span class="count-pill" id="userCount">—</span>
+        <button class="btn btn-refresh" id="refreshBtn" type="button">刷新</button>
+      </div>
+    </div>
+
+    <section class="list-card" aria-label="用户列表">
+      <div class="list-state" id="listState">
+        <span class="loader" id="stateSpinner"></span>
+        <span id="listStateText">加载用户列表...</span>
+      </div>
+      <div class="user-list" id="userList" hidden></div>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="actionModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-header">
+        <div class="modal-heading">
+          <p class="modal-eyebrow">用户管理</p>
+          <h2 class="modal-title" id="modalTitle">操作用户</h2>
+        </div>
+        <button class="modal-close" id="modalClose" type="button" aria-label="关闭">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="field-group">
+          <label class="field-label" for="userId">用户 ID</label>
+          <input class="field-input" type="text" id="userId" readonly>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="actionType">操作类型</label>
+          <select class="field-input" id="actionType">
+            <option value="set-expire">设置过期时间</option>
+            <option value="reset-password">重置密码</option>
+            <option value="change-role">修改角色</option>
+            <option value="demote">降级并清空笔记</option>
+            <option value="delete">删除用户</option>
+          </select>
+        </div>
+
+        <div class="field-group" id="expireDaysGroup" hidden>
+          <label class="field-label" for="expireDays">过期天数</label>
+          <input class="field-input" type="number" id="expireDays" value="7" min="1">
+        </div>
+
+        <div class="field-group" id="newRoleGroup" hidden>
+          <label class="field-label" for="newRole">新角色</label>
+          <select class="field-input" id="newRole">
+            <option value="骑士">骑士</option>
+            <option value="贵族">贵族</option>
+          </select>
+        </div>
+
+        <p class="form-hint" id="actionHint"></p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn" id="cancelBtn" type="button">取消</button>
+        <button class="btn btn-primary" id="submitBtn" type="button">确认操作</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="/js/admin.js"></script>
+</body>
+</html>
