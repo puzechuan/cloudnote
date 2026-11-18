@@ -36,6 +36,7 @@
   - 分享失效：该分享已经被删除或者不存在
   - 权限不足：你没有权限访问这个页面
 - 黑白设计、深色模式、移动端适配
+- Apache License 2.0 开源，应用内提供「开源条款」入口，公开许可页 `/license.html`
 
 ---
 
@@ -54,6 +55,7 @@
 │   ├── css/
 │   └── js/
 ├── scripts/
+│   ├── deploy.mjs          # 一键部署脚本
 │   └── wrangler.mjs         # Wrangler 启动包装器
 ├── src/
 │   ├── index.js             # Worker 入口 / 路由
@@ -105,7 +107,66 @@ npm run dev
 
 ---
 
-## 部署到 Cloudflare
+## 一键部署到 Cloudflare（无需本地下载）
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/puzechuan/cloudnote)
+
+点击按钮后，Cloudflare 会：
+
+1. 引导你登录 Cloudflare 并授权 GitHub
+2. 将公开仓库克隆到你的 GitHub 账号
+3. 让你确认 Worker 名称和 D1 资源名称
+4. 自动创建并绑定 D1 数据库
+5. 执行 `npm run deploy`：先初始化数据库，再部署 Worker
+6. 完成后给出可访问的地址
+
+**不需要先 clone 或下载项目到本地。**
+
+要求：
+
+- 仓库必须是公开的（本项目已是 public）
+- 需要 Cloudflare 账号，并授权 GitHub
+- 按钮读取的是 GitHub 上的代码，使用前请确认最新代码已 push 到 `master`
+
+部署完成后：
+
+- 默认管理员：`admin / 123456aaa`，请立即修改
+- 数据库初始化由 `deploy` 脚本自动执行，不需要手动导入 SQL
+
+### 本地 CLI 部署（可选，需要先 clone）
+
+如果你已经把项目下载到本地，也可以使用：
+
+```bash
+npm install
+npm run deploy:auto
+```
+
+脚本会自动完成：
+
+1. 检查 Node 版本与依赖，必要时执行 `npm install`
+2. 检查 Cloudflare 登录，未登录会启动 `wrangler login`
+3. 复用或创建 `wrangler.jsonc` 中配置的 D1，并自动同步 `database_id`
+4. 执行 `init_cloudnote_db.sql`（幂等，不会清空已有数据）
+5. 执行 `wrangler deploy`，并访问首页做一次状态检查
+
+只检查配置、不访问 Cloudflare：
+
+```bash
+npm run deploy:auto -- --dry-run
+```
+
+说明：
+
+- 首次运行需要交互式登录；CI 可设置 `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`
+- 如果账号中已经存在同名 D1，会复用并更新 `database_id`
+- 修改 `wrangler.jsonc` 前会备份为 `wrangler.jsonc.bak`
+- 如果存在多个同名 D1，脚本会停止并提示先清理
+- 已有数据库的 `admin` 密码不会被覆盖；需要恢复默认密码时参考「常见问题」
+
+---
+
+## 部署到 Cloudflare（手动步骤）
 
 ### 1. 登录 Wrangler
 
@@ -149,21 +210,23 @@ npm run db:create
 >
 > `remote: false` 仅影响本地开发时使用本地 D1；部署时仍会使用远程数据库。
 
-### 3. 初始化远程数据库
+### 3. 初始化远程数据库（可选）
+
+`npm run deploy` 会自动执行数据库初始化，通常不需要单独运行本节。
+
+该初始化会执行项目根目录的 `init_cloudnote_db.sql`，一次性创建全部表、索引和种子数据：
+
+- `users`、`notebooks`、`sessions`、`shares`、`captchas`
+- 相关索引
+- 默认 `admin` 种子账号
+
+脚本是幂等的，已有数据库重复执行也不会清空数据。
+
+如需单独初始化：
 
 ```bash
 npm run db:init
 ```
-
-该命令执行项目根目录的 `init_cloudnote_db.sql`，一次性创建全部表、索引和种子数据：
-
-- `users`、`notebooks`、`sessions`、`shares`、`captchas`
-- 相关索引
-- 历史 `admin` 种子账号（`INSERT OR IGNORE`）
-
-脚本是幂等的，已有数据库重复执行也不会清空数据。
-
-> 如果未初始化数据库，注册验证码接口会报 `D1_ERROR: no such table: captchas`。
 
 本地对应命令：
 
@@ -173,11 +236,13 @@ npm run db:init:local
 
 ### 4. 部署
 
+`npm run deploy` 会先初始化数据库，再执行 `wrangler deploy`。
+
 ```bash
 # 可选：先做一次构建检查
 npm run check
 
-# 正式部署
+# 正式部署（自动执行 db:init + wrangler deploy）
 npm run deploy
 ```
 
@@ -277,7 +342,8 @@ npx wrangler d1 execute DB --remote --yes --command "DELETE FROM users WHERE use
 | 命令 | 作用 |
 | --- | --- |
 | `npm run dev` | 启动本地 Wrangler dev server |
-| `npm run deploy` | 部署到 Cloudflare |
+| `npm run deploy:auto` | 一键部署（自动处理 D1、初始化、部署） |
+| `npm run deploy` | 初始化数据库并执行 `wrangler deploy` |
 | `npm run check` | `wrangler deploy --dry-run` |
 | `npm run db:create` | 创建 D1 数据库 `cloudnote-db` |
 | `npm run db:init` | 初始化远程数据库（执行 init_cloudnote_db.sql） |
@@ -440,6 +506,8 @@ cloudnote 使用 **Apache License 2.0** 开源。
 
 - 许可证全文：[LICENSE](LICENSE)
 - 版权与归属声明：[NOTICE](NOTICE)
+- 在线条款：`/license.html`
+- 纯文本：`/LICENSE.txt`
 
 Copyright 2026 cloudnote contributors.
 

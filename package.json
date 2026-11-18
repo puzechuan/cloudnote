@@ -10,7 +10,8 @@
   },
   "scripts": {
     "dev": "node scripts/wrangler.mjs dev",
-    "deploy": "node scripts/wrangler.mjs deploy",
+    "deploy": "npm run db:init && node scripts/wrangler.mjs deploy",
+    "deploy:auto": "node scripts/deploy.mjs",
     "check": "node scripts/wrangler.mjs deploy --dry-run",
     "db:create": "node scripts/wrangler.mjs d1 create cloudnote-db",
     "db:init": "node scripts/wrangler.mjs d1 execute DB --remote --yes --file=init_cloudnote_db.sql",
