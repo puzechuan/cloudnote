@@ -111,24 +111,6 @@ npm run dev
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/puzechuan/cloudnote)
 
-> **README 能获取当前用户的 GitHub 名称吗？**
->
-> 不能。README 是静态 Markdown，没有 JavaScript、模板变量或当前访问者的 GitHub 上下文，无法在渲染时拼出 `<你的用户名>`。
->
-> 上面的官方 Deploy Button 使用原仓库地址。Cloudflare 会在部署时把仓库自动克隆到你的 GitHub 账号，因此按钮本身不需要用户名；如果你希望明确先 Fork，再用自己的仓库地址部署，请使用下面的「方式二」。
-
-### 方式一：直接点击按钮（推荐）
-
-1. 点击上面的 **Deploy to Cloudflare** 按钮
-2. 登录 Cloudflare，并授权 GitHub
-3. 配置页会在你的 GitHub 账号下创建仓库副本，并创建/绑定 D1 数据库
-4. **首次部署必须手动初始化 D1**，见下方「初始化 D1（手动，必做）」
-5. 确认 Deploy command 为 `npm run deploy`（不是 `npx wrangler deploy`）
-6. 完成后访问 Cloudflare 给出的地址
-
-> 如果部署页已经自动创建了 D1，请在 Cloudflare 控制台打开那个数据库，按下面的 SQL 步骤初始化它。
-
-**不需要先 clone 或下载项目到本地。**
 
 ### 初始化 D1（手动，必做）
 
@@ -173,73 +155,11 @@ npm run dev
 
 初始化脚本是幂等的，重复执行不会清空已有数据。
 
-#### 步骤 4：把 D1 绑定到 Worker
-
-- 如果部署页可以选择已有 D1，选择刚创建的 `cloudnote-db`
-- 如果需要手动配置，在**你的 Fork**的 `wrangler.jsonc` 中填入步骤 2 复制的 ID：
-
-```jsonc
-"d1_databases": [
-  {
-    "binding": "DB",
-    "database_name": "cloudnote-db",
-    "database_id": "步骤2复制的数据库ID",
-    "remote": false
-  }
-]
-```
-
-> 不要填原作者的 `database_id`，否则会出现 10181：数据库不存在。
-
-### 方式二：先手动 Fork（可选）
-
-如果希望先明确 Fork 到自己的 GitHub，再使用自己的仓库地址部署，按下面步骤操作；无论用哪种方式，上面的 D1 初始化都必须做。
-
-[![Fork cloudnote](https://img.shields.io/badge/Fork-cloudnote-black?logo=github)](https://github.com/puzechuan/cloudnote/fork)
-
-#### 1. 先 Fork 到你的 GitHub
-
-打开 [Fork 页面](https://github.com/puzechuan/cloudnote/fork)，把仓库 Fork 到你自己的 GitHub 账号。
-
-- 只需要在 GitHub 上 Fork，不需要 clone 或下载到本地
-- Fork 出来的仓库默认是公开的
-- 请确认原仓库已是最新代码，否则 Fork 到的是旧版本
-
-使用 GitHub CLI 也可以（不 clone）：
-
-```bash
-gh repo fork puzechuan/cloudnote --clone=false
-```
-
-#### 2. 用你的 Fork 地址打开部署页
-
-把 `<your-github-username>` 替换成你的 GitHub 用户名：
-
-```text
-https://deploy.workers.cloudflare.com/?url=https://github.com/<your-github-username>/cloudnote
-```
-
-> 必须指向你自己的 Fork，而不是原仓库；这样才能在自己的仓库中继续开发和部署。
-
-打开部署页后：
-
-1. 登录 Cloudflare，并授权 GitHub
-2. 确认 Worker 名称和 D1 资源；选择你创建/将要初始化的 `cloudnote-db`
-3. 确认 Deploy command 是 `npm run deploy`
-4. 完成部署后访问给出的地址
-
-> **Deploy command 必须是 `npm run deploy`**。如果部署页显示的是 `npx wrangler deploy`，请改成 `npm run deploy`，否则数据库不会被初始化。
-
-要求：
-
-- 你的 Fork 必须是公开仓库
-- 需要 Cloudflare 账号，并授权 GitHub
-- 部署页读取的是你 Fork 仓库里的代码；请确认最新代码已 push 到 Fork 的 `master`
 
 部署完成后：
 
 - 默认管理员：`admin / 123456aaa`，请立即修改
-- 如果 Deploy command 已自动执行初始化，可跳过手动 SQL；首次部署仍建议按上面的步骤确认表已存在
+
 
 ### 本地 CLI 部署（可选，需要先 clone）
 
