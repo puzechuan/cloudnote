@@ -139,7 +139,7 @@ npm run dev
 
 #### 步骤 3：粘贴 SQL 并执行
 
-1. 打开仓库根目录的 `init_cloudnote_db.sql`，复制全部内容
+1. 打开仓库根目录的[init_cloudnote_db.sql](init_cloudnote_db.sql)，复制全部内容
 2. 在 D1 Studio 的 Query 编辑器中粘贴
 3. 点击 **Run** 右侧下拉箭头
 4. 选择 **Run all in sequence**
