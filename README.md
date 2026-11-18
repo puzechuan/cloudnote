@@ -125,7 +125,70 @@ npm run dev
 gh repo fork puzechuan/cloudnote --clone=false
 ```
 
-### 2. 用你的 Fork 地址打开部署页
+### 2. 创建并初始化 D1（手动，必做）
+
+一键部署页可以创建 D1，但不会可靠地执行建表 SQL。首次部署请先在 Cloudflare 控制台创建并初始化 `cloudnote-db`，否则注册/登录会报 `no such table`。
+
+#### 步骤 1：创建或打开 D1 数据库
+
+打开 Cloudflare Dashboard：
+
+1. 左侧 **Storage & databases**
+2. **D1 SQLite Database**
+3. 点击 **Create Database** 创建 `cloudnote-db`，或打开已有同名数据库
+
+![D1 数据库入口](<image/初始化数据库步骤1.png>)
+
+#### 步骤 2：复制 database ID，进入 Explore Data
+
+打开 `cloudnote-db` 详情页：
+
+- 复制页面上的 **database ID**（后面绑定 D1 会用到）
+- 点击 **Explore Data** 进入 D1 Studio
+
+![复制数据库 ID](<image/初始化数据库步骤2.png>)
+
+#### 步骤 3：粘贴 SQL 并执行
+
+1. 打开仓库根目录的 `init_cloudnote_db.sql`，复制全部内容
+2. 在 D1 Studio 的 Query 编辑器中粘贴
+3. 点击 **Run** 右侧下拉箭头
+4. 选择 **Run all in sequence**
+5. 点击 **Run**
+
+![执行初始化 SQL](<image/初始化数据库步骤3.png>)
+
+执行成功后左侧应出现：
+
+- `users`
+- `notebooks`
+- `sessions`
+- `shares`
+- `captchas`
+
+初始化脚本是幂等的，重复执行不会清空已有数据。
+
+#### 步骤 4：把 D1 绑定到 Worker
+
+在部署页中：
+
+- 如果部署页可以选择已有 D1，选择刚创建的 `cloudnote-db`
+- 如果需要手动配置，在**你的 Fork**的 `wrangler.jsonc` 中填入步骤 2 复制的 ID：
+
+```jsonc
+"d1_databases": [
+  {
+    "binding": "DB",
+    "database_name": "cloudnote-db",
+    "database_id": "步骤2复制的数据库ID",
+    "remote": false
+  }
+]
+```
+
+> 不要填原作者的 `database_id`，否则会出现 10181：数据库不存在。
+
+### 3. 用你的 Fork 地址打开部署页
 
 把 `<your-github-username>` 替换成你的 GitHub 用户名：
 
@@ -138,14 +201,13 @@ https://deploy.workers.cloudflare.com/?url=https://github.com/<your-github-usern
 打开部署页后：
 
 1. 登录 Cloudflare，并授权 GitHub
-2. 确认 Worker 名称和 D1 资源名称
-3. Cloudflare 自动创建并绑定 D1 数据库
-4. 执行 `npm run deploy`：先初始化数据库，再部署 Worker
-5. 完成后给出可访问的地址
+2. 确认 Worker 名称和 D1 资源；选择步骤 2 创建的 `cloudnote-db`
+3. 执行 `npm run deploy`：先初始化数据库，再部署 Worker
+4. 完成后给出可访问的地址
 
 > **Deploy command 必须是 `npm run deploy`**。如果部署页显示的是 `npx wrangler deploy`，请改成 `npm run deploy`，否则数据库不会被初始化。
 >
-> 仓库中的 `wrangler.jsonc` 不再写死 `database_id`，D1 由 Cloudflare 在部署时自动创建并写回。Fork 里如果仍能看到旧的 `database_id`，说明 Fork 是旧版本，请 Sync fork 或重新 Fork。
+> 如果你按步骤 4 手动填写了 `database_id`，部署页会使用你创建的 D1；如果你让 Cloudflare 自动创建新库，部署完成后也要按步骤 2 的 SQL 手动初始化那个新库。Fork 里如果仍能看到原作者的旧 `database_id`，请 Sync fork 或重新 Fork。
 
 **不需要先 clone 或下载项目到本地。**
 
@@ -158,7 +220,7 @@ https://deploy.workers.cloudflare.com/?url=https://github.com/<your-github-usern
 部署完成后：
 
 - 默认管理员：`admin / 123456aaa`，请立即修改
-- 数据库初始化由 `deploy` 脚本自动执行，不需要手动导入 SQL
+- 如果 Deploy command 已自动执行初始化，可跳过手动 SQL；首次部署仍建议按步骤 2 确认表已存在
 
 ### 本地 CLI 部署（可选，需要先 clone）
 
@@ -231,7 +293,7 @@ npm run db:create
 ]
 ```
 
-> **重要**：仓库里的 `database_id` 是开发环境的值。部署前必须替换成你自己账号下的 D1 ID，否则部署会绑定失败。
+> **重要**：仓库默认不写死 `database_id`。如果你使用手动 CLI 部署，请填入你自己账号下 D1 的 ID；不要填原作者的 ID。
 >
 > 如果你已经在 Cloudflare 控制台创建了数据库，可以跳过 `db:create`，直接填写现有 ID。
 >
@@ -506,8 +568,8 @@ D1 绑定“DB”引用了数据库“a04ffc17-...”，但未找到该数据库
 修复：
 
 1. 确认原仓库已更新，然后对你的 Fork 执行 **Sync fork**，或重新 Fork
-2. 确认 `wrangler.jsonc` 的 `d1_databases` 中没有 `database_id`，只保留 `binding` 和 `database_name`
-3. 在部署页中让 Cloudflare 新建 D1，不要沿用旧 ID
+2. 确认 `wrangler.jsonc` 的 `d1_databases` 中没有**原作者**的 `database_id`；如果你手动创建了 D1，填入自己的 ID 是允许的
+3. 在部署页选择你创建的 `cloudnote-db`，或让 Cloudflare 新建后再初始化
 4. 确认 Deploy command 是 `npm run deploy`
 5. 重新部署
 
