@@ -1629,6 +1629,11 @@ body.signed-out .sidebar {
     border-radius: 11px;
   }
 
+  /* 移动端只保留账号菜单里的「我的分享」入口 */
+  #myShareBtn {
+    display: none;
+  }
+
   .account-area {
     margin-left: 0;
   }
