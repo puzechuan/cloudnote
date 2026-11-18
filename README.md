@@ -107,26 +107,49 @@ npm run dev
 
 ---
 
-## 一键部署到 Cloudflare（无需本地下载）
+## Fork 后一键部署到 Cloudflare（无需本地下载）
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/puzechuan/cloudnote)
+[![Fork cloudnote](https://img.shields.io/badge/Fork-cloudnote-black?logo=github)](https://github.com/puzechuan/cloudnote/fork)
 
-点击按钮后，Cloudflare 会：
+### 1. 先 Fork 到你的 GitHub
 
-1. 引导你登录 Cloudflare 并授权 GitHub
-2. 将公开仓库克隆到你的 GitHub 账号
-3. 让你确认 Worker 名称和 D1 资源名称
-4. 自动创建并绑定 D1 数据库
-5. 执行 `npm run deploy`：先初始化数据库，再部署 Worker
-6. 完成后给出可访问的地址
+打开 [Fork 页面](https://github.com/puzechuan/cloudnote/fork)，把仓库 Fork 到你自己的 GitHub 账号。
+
+- 只需要在 GitHub 上 Fork，不需要 clone 或下载到本地
+- Fork 出来的仓库默认是公开的
+- 请确认原仓库已是最新代码，否则 Fork 到的是旧版本
+
+使用 GitHub CLI 也可以（不 clone）：
+
+```bash
+gh repo fork puzechuan/cloudnote --clone=false
+```
+
+### 2. 用你的 Fork 地址打开部署页
+
+把 `<your-github-username>` 替换成你的 GitHub 用户名：
+
+```text
+https://deploy.workers.cloudflare.com/?url=https://github.com/<your-github-username>/cloudnote
+```
+
+> 必须指向你自己的 Fork，而不是原仓库；这样才能在自己的仓库中继续开发和部署。
+
+打开部署页后：
+
+1. 登录 Cloudflare，并授权 GitHub
+2. 确认 Worker 名称和 D1 资源名称
+3. Cloudflare 自动创建并绑定 D1 数据库
+4. 执行 `npm run deploy`：先初始化数据库，再部署 Worker
+5. 完成后给出可访问的地址
 
 **不需要先 clone 或下载项目到本地。**
 
 要求：
 
-- 仓库必须是公开的（本项目已是 public）
+- 你的 Fork 必须是公开仓库
 - 需要 Cloudflare 账号，并授权 GitHub
-- 按钮读取的是 GitHub 上的代码，使用前请确认最新代码已 push 到 `master`
+- 部署页读取的是你 Fork 仓库里的代码；请确认最新代码已 push 到 Fork 的 `master`
 
 部署完成后：
 
