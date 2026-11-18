@@ -168,25 +168,7 @@ gh repo fork puzechuan/cloudnote --clone=false
 
 初始化脚本是幂等的，重复执行不会清空已有数据。
 
-#### 步骤 4：把 D1 绑定到 Worker
 
-在部署页中：
-
-- 如果部署页可以选择已有 D1，选择刚创建的 `cloudnote-db`
-- 如果需要手动配置，在**你的 Fork**的 `wrangler.jsonc` 中填入步骤 2 复制的 ID：
-
-```jsonc
-"d1_databases": [
-  {
-    "binding": "DB",
-    "database_name": "cloudnote-db",
-    "database_id": "步骤2复制的数据库ID",
-    "remote": false
-  }
-]
-```
-
-> 不要填原作者的 `database_id`，否则会出现 10181：数据库不存在。
 
 ### 3. 用你的 Fork 地址打开部署页
 
