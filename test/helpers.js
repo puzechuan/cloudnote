@@ -1,4 +1,4 @@
-import { readdir, readFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { createHash, randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -119,11 +119,7 @@ export function createAssets() {
 /** 创建一套测试环境（独立内存数据库 + 静态资源 + 可选 KV）。 */
 export async function createEnv({ kv = false } = {}) {
   const sqlite = new DatabaseSync(':memory:');
-  const migrationsDir = path.join(ROOT, 'migrations');
-  const files = (await readdir(migrationsDir)).filter((file) => file.endsWith('.sql')).sort();
-  for (const file of files) {
-    sqlite.exec(await readFile(path.join(migrationsDir, file), 'utf8'));
-  }
+  sqlite.exec(await readFile(path.join(ROOT, 'init_cloudnote_db.sql'), 'utf8'));
 
   const env = {
     DB: createD1(sqlite),

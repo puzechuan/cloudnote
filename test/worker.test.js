@@ -11,7 +11,7 @@ test('静态资源、OPTIONS 与 404', async () => {
 
   const home = await call(env, '/');
   assert.equal(home.status, 200);
-  assert.match(home.text, /点我! 记事本/);
+  assert.match(home.text, /cloudnote/);
   assert.match(home.text, /\/js\/app\.js/);
 
   const css = await call(env, '/css/app.css');
@@ -516,7 +516,7 @@ test('管理员后台：鉴权、改角色、重置密码与删除用户', async
 
   res = await call(env, '/api/login', {
     method: 'POST',
-    body: { username: 'sunldigv3', password: 'password' }
+    body: { username: 'admin', password: '123456aaa' }
   });
   assert.equal(res.status, 200);
   const adminCookie = res.cookie;
@@ -953,7 +953,7 @@ test('Cron 清理：只删除过期且无笔记的普通账号', async () => {
   const markExpired = sqlite.prepare('UPDATE users SET expire_until = ? WHERE username = ?');
   markExpired.run(past, 'empty-account');
   markExpired.run(past, 'active-account');
-  markExpired.run(past, 'sunldigv3');
+  markExpired.run(past, 'admin');
 
   const waitUntil = [];
   await worker.scheduled({}, env, { waitUntil: (promise) => waitUntil.push(promise) });
@@ -963,7 +963,7 @@ test('Cron 清理：只删除过期且无笔记的普通账号', async () => {
     .prepare('SELECT username FROM users ORDER BY username')
     .all()
     .map((row) => row.username);
-  assert.deepEqual(remaining, ['active-account', 'sunldigv3']);
+  assert.deepEqual(remaining, ['active-account', 'admin']);
 
   const emptySessions = sqlite
     .prepare('SELECT COUNT(*) AS c FROM sessions WHERE user_id = (SELECT id FROM users WHERE username = ?)')

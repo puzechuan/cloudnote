@@ -12,8 +12,8 @@
     "deploy": "node scripts/wrangler.mjs deploy",
     "check": "node scripts/wrangler.mjs deploy --dry-run",
     "db:create": "node scripts/wrangler.mjs d1 create cloudnote-db",
-    "db:migrate": "node scripts/wrangler.mjs d1 migrations apply DB --remote",
-    "db:migrate:local": "node scripts/wrangler.mjs d1 migrations apply DB --local",
+    "db:init": "node scripts/wrangler.mjs d1 execute DB --remote --yes --file=init_cloudnote_db.sql",
+    "db:init:local": "node scripts/wrangler.mjs d1 execute DB --local --yes --file=init_cloudnote_db.sql",
     "wrangler": "node scripts/wrangler.mjs",
     "test": "node --experimental-sqlite test/worker.test.js"
   },
