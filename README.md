@@ -125,7 +125,42 @@ npm run dev
 gh repo fork puzechuan/cloudnote --clone=false
 ```
 
-### 2. 创建并初始化 D1（手动，必做）
+
+### 2. 用你的 Fork 地址打开部署页
+
+把 `<your-github-username>` 替换成你的 GitHub 用户名：
+
+```text
+https://deploy.workers.cloudflare.com/?url=https://github.com/<your-github-username>/cloudnote
+```
+
+> 必须指向你自己的 Fork，而不是原仓库；这样才能在自己的仓库中继续开发和部署。
+
+打开部署页后：
+
+1. 登录 Cloudflare，并授权 GitHub
+2. 确认 Worker 名称和 D1 资源；选择步骤 2 创建的 `cloudnote-db`
+3. 执行 `npm run deploy`：先初始化数据库，再部署 Worker
+4. 完成后给出可访问的地址
+
+> **Deploy command 必须是 `npm run deploy`**。如果部署页显示的是 `npx wrangler deploy`，请改成 `npm run deploy`，否则数据库不会被初始化。
+>
+> 如果你按步骤 4 手动填写了 `database_id`，部署页会使用你创建的 D1；如果你让 Cloudflare 自动创建新库，部署完成后也要按步骤 2 的 SQL 手动初始化那个新库。Fork 里如果仍能看到原作者的旧 `database_id`，请 Sync fork 或重新 Fork。
+
+**不需要先 clone 或下载项目到本地。**
+
+要求：
+
+- 你的 Fork 必须是公开仓库
+- 需要 Cloudflare 账号，并授权 GitHub
+- 部署页读取的是你 Fork 仓库里的代码；请确认最新代码已 push 到 Fork 的 `master`
+
+部署完成后：
+
+- 默认管理员：`admin / 123456aaa`，请立即修改
+- 如果 Deploy command 已自动执行初始化，可跳过手动 SQL；首次部署仍建议按步骤 2 确认表已存在
+
+### 3. 创建并初始化 D1（手动，必做）
 
 一键部署页可以创建 D1，但不会可靠地执行建表 SQL。首次部署请先在 Cloudflare 控制台创建并初始化 `cloudnote-db`，否则注册/登录会报 `no such table`。
 
@@ -169,40 +204,6 @@ gh repo fork puzechuan/cloudnote --clone=false
 初始化脚本是幂等的，重复执行不会清空已有数据。
 
 
-
-### 3. 用你的 Fork 地址打开部署页
-
-把 `<your-github-username>` 替换成你的 GitHub 用户名：
-
-```text
-https://deploy.workers.cloudflare.com/?url=https://github.com/<your-github-username>/cloudnote
-```
-
-> 必须指向你自己的 Fork，而不是原仓库；这样才能在自己的仓库中继续开发和部署。
-
-打开部署页后：
-
-1. 登录 Cloudflare，并授权 GitHub
-2. 确认 Worker 名称和 D1 资源；选择步骤 2 创建的 `cloudnote-db`
-3. 执行 `npm run deploy`：先初始化数据库，再部署 Worker
-4. 完成后给出可访问的地址
-
-> **Deploy command 必须是 `npm run deploy`**。如果部署页显示的是 `npx wrangler deploy`，请改成 `npm run deploy`，否则数据库不会被初始化。
->
-> 如果你按步骤 4 手动填写了 `database_id`，部署页会使用你创建的 D1；如果你让 Cloudflare 自动创建新库，部署完成后也要按步骤 2 的 SQL 手动初始化那个新库。Fork 里如果仍能看到原作者的旧 `database_id`，请 Sync fork 或重新 Fork。
-
-**不需要先 clone 或下载项目到本地。**
-
-要求：
-
-- 你的 Fork 必须是公开仓库
-- 需要 Cloudflare 账号，并授权 GitHub
-- 部署页读取的是你 Fork 仓库里的代码；请确认最新代码已 push 到 Fork 的 `master`
-
-部署完成后：
-
-- 默认管理员：`admin / 123456aaa`，请立即修改
-- 如果 Deploy command 已自动执行初始化，可跳过手动 SQL；首次部署仍建议按步骤 2 确认表已存在
 
 ### 本地 CLI 部署（可选，需要先 clone）
 
