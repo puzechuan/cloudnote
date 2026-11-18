@@ -109,12 +109,6 @@ npm run dev
 
 ## 网页部署到 Cloudflare（无需本地下载）
 
-> **为什么不用 Deploy Button？**
->
-> Deploy Button 需要 Cloudflare 的 GitHub App 获得仓库读取权限。如果之前没有安装/授权，按钮会失效，Cloudflare 无法读取仓库。
->
-> 下面改为在 Cloudflare 控制台手动连接 GitHub，并在 GitHub 授权页明确选择仓库。
-
 ### 1. 先 Fork 到自己的仓库
 
 打开 [Fork 页面](https://github.com/puzechuan/cloudnote/fork)，把仓库 Fork 到你自己的 GitHub 账号。
@@ -165,22 +159,7 @@ npm run dev
 
 初始化脚本是幂等的，重复执行不会清空已有数据。
 
-#### 步骤 4：在 Fork 的配置中填入自己的 D1 ID
 
-打开你 Fork 的 `wrangler.jsonc`，填入步骤 2 复制的 ID：
-
-```jsonc
-"d1_databases": [
-  {
-    "binding": "DB",
-    "database_name": "cloudnote-db",
-    "database_id": "步骤2复制的数据库ID",
-    "remote": false
-  }
-]
-```
-
-> 不要填原作者的 `database_id`，否则会报 10181：数据库不存在。
 
 ### 3. 打开 Workers & Pages
 
