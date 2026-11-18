@@ -24,6 +24,8 @@
 
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --appbar-h: 64px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -58,6 +60,7 @@ html {
 
 body {
   min-height: 100%;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   background-color: var(--canvas);
@@ -66,6 +69,8 @@ body {
     system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
@@ -381,6 +386,71 @@ body {
 
   .note-content {
     font-size: 15.5px;
+  }
+}
+
+/* ------------------------------------------------------- mobile polish */
+
+@media (max-width: 640px) {
+  .app-bar {
+    height: calc(var(--appbar-h) + var(--safe-top));
+    padding: var(--safe-top) 10px 0;
+  }
+
+  .brand {
+    gap: 8px;
+    font-size: 15px;
+  }
+
+  .top-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 0 12px;
+  }
+
+  .page {
+    padding: 12px 10px calc(28px + var(--safe-bottom));
+  }
+
+  .note-card {
+    border-radius: var(--radius-lg);
+  }
+
+  .note-head {
+    padding: 20px 18px 16px;
+  }
+
+  .note-eyebrow {
+    font-size: 11px;
+  }
+
+  .note-title {
+    font-size: clamp(21px, 5.4vw, 24px);
+  }
+
+  .note-content {
+    padding: 18px 18px 24px;
+    font-size: 16px;
+    line-height: 1.8;
+  }
+
+  .note-foot {
+    flex-wrap: wrap;
+    padding: 12px 16px calc(12px + var(--safe-bottom));
+  }
+
+  .notfound-body {
+    padding: 28px 18px 24px;
+  }
+
+  .notfound-title {
+    font-size: clamp(22px, 6vw, 28px);
+  }
+
+  .notfound-btn {
+    min-height: 44px;
   }
 }
 
