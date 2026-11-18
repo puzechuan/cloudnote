@@ -107,16 +107,24 @@ npm run dev
 
 ---
 
-## 一键部署到 Cloudflare（无需本地下载）
+## 网页部署到 Cloudflare（无需本地下载）
 
-### 首先点击部署
+> **为什么不用 Deploy Button？**
+>
+> Deploy Button 需要 Cloudflare 的 GitHub App 获得仓库读取权限。如果之前没有安装/授权，按钮会失效，Cloudflare 无法读取仓库。
+>
+> 下面改为在 Cloudflare 控制台手动连接 GitHub，并在 GitHub 授权页明确选择仓库。
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/puzechuan/cloudnote)
+### 1. 先 Fork 到自己的仓库
 
+打开 [Fork 页面](https://github.com/puzechuan/cloudnote/fork)，把仓库 Fork 到你自己的 GitHub 账号。
 
-### 初始化 D1（手动，必做）
+- 需要 Fork，因为你需要在 Fork 的 `wrangler.jsonc` 中填写自己的 D1 ID
+- 不需要 clone 或下载到本地
 
-一键部署页可以创建 D1，但不会可靠地执行建表 SQL。首次部署请在 Cloudflare 控制台初始化数据库，否则注册/登录会报 `no such table`。
+### 2. 创建并初始化 D1（部署前必做）
+
+一键部署不会可靠地执行建表 SQL。首次部署请先在 Cloudflare 控制台创建并初始化 `cloudnote-db`，否则注册/登录会报 `no such table`。
 
 #### 步骤 1：创建或打开 D1 数据库
 
@@ -132,14 +140,14 @@ npm run dev
 
 打开 `cloudnote-db` 详情页：
 
-- 复制页面上的 **database ID**（后面绑定 D1 会用到）
+- 复制页面上的 **database ID**（下一步配置会用到）
 - 点击 **Explore Data** 进入 D1 Studio
 
 ![复制数据库 ID](<image/初始化数据库步骤2.png>)
 
 #### 步骤 3：粘贴 SQL 并执行
 
-1. 打开仓库根目录的[init_cloudnote_db.sql](init_cloudnote_db.sql)，复制全部内容
+1. 打开仓库根目录的 `init_cloudnote_db.sql`，复制全部内容
 2. 在 D1 Studio 的 Query 编辑器中粘贴
 3. 点击 **Run** 右侧下拉箭头
 4. 选择 **Run all in sequence**
@@ -157,11 +165,83 @@ npm run dev
 
 初始化脚本是幂等的，重复执行不会清空已有数据。
 
+#### 步骤 4：在 Fork 的配置中填入自己的 D1 ID
 
-部署完成后：
+打开你 Fork 的 `wrangler.jsonc`，填入步骤 2 复制的 ID：
+
+```jsonc
+"d1_databases": [
+  {
+    "binding": "DB",
+    "database_name": "cloudnote-db",
+    "database_id": "步骤2复制的数据库ID",
+    "remote": false
+  }
+]
+```
+
+> 不要填原作者的 `database_id`，否则会报 10181：数据库不存在。
+
+### 3. 打开 Workers & Pages
+
+Cloudflare Dashboard：
+
+1. 左侧 **Compute**
+2. **Workers & Pages**
+3. 点击右上角 **Create application**
+
+![打开 Workers & Pages](<image/网页部署步骤1.png>)
+
+### 4. 连接 GitHub
+
+在 **Make something new** 页面选择 **Connect GitHub**。
+
+![连接 GitHub](<image/网页部署步骤2.png>)
+
+### 5. 安装并授权 Cloudflare Workers and Pages
+
+GitHub 会打开授权页：
+
+1. 选择 **Only select repositories**（推荐）并选中你的 `cloudnote` Fork，或选择 **All repositories**
+2. 确认权限包含代码读取
+3. 点击 **Install & Authorize**
+
+![安装并授权](<image/网页部署步骤3.png>)
+
+> 如果之前已经安装过 Cloudflare Workers and Pages，但 Cloudflare 仍提示没有仓库权限：
+>
+> GitHub → Settings → Applications → Cloudflare Workers and Pages → Configure → Repository access → 添加你的仓库。
+
+### 6. 选择仓库并配置项目
+
+回到 Cloudflare 创建应用页面：
+
+- **Repository**：你的 Fork
+- **Branch**：`master`
+- **Project name**：`cloudnote`
+- **Root directory**：`/`
+- **Build command**：留空（项目没有构建步骤）
+- **Deploy command**：`npm run deploy`
+
+> 如果默认显示 `npx wrangler deploy`，请改成 `npm run deploy`。这个命令会先执行 `db:init`（幂等），再部署 Worker。
+
+如果配置页要求添加 D1 绑定：
+
+- Binding：`DB`
+- Database：选择步骤 1 创建的 `cloudnote-db`
+
+### 7. 部署
+
+点击 **Deploy** 或 **Save and Deploy**，Cloudflare Workers Builds 会：
+
+1. 安装依赖
+2. 执行 `npm run deploy`
+3. 初始化数据库并部署 Worker
+
+完成后访问 Cloudflare 给出的地址。
 
 - 默认管理员：`admin / 123456aaa`，请立即修改
-
+- 如果部署日志显示数据库不存在，检查 Fork 中 `wrangler.jsonc` 的 `database_id` 是否是步骤 2 复制的 ID
 
 ### 本地 CLI 部署（可选，需要先 clone）
 
@@ -496,7 +576,7 @@ npx wrangler d1 execute DB --local --yes --command "UPDATE users SET password_ha
 
 > 该哈希对应密码 `123456aaa`，仅用于初始化；请登录后立即修改。
 
-### Deploy Button 报错 10181：D1 数据库不存在
+### 网页部署报错 10181：D1 数据库不存在
 
 错误示例：
 
@@ -504,23 +584,25 @@ npx wrangler d1 execute DB --local --yes --command "UPDATE users SET password_ha
 D1 绑定“DB”引用了数据库“a04ffc17-...”，但未找到该数据库
 ```
 
-原因：Fork 里的 `wrangler.jsonc` 还带着原作者的 `database_id`，Cloudflare 没有自动创建新 D1。
+原因：Fork 里的 `wrangler.jsonc` 使用了不存在或不属于当前账号的 `database_id`。
 
 修复：
 
-1. 确认原仓库已更新，然后对你的 Fork 执行 **Sync fork**，或重新 Fork
-2. 确认 `wrangler.jsonc` 的 `d1_databases` 中没有**原作者**的 `database_id`；如果你手动创建了 D1，填入自己的 ID 是允许的
-3. 在部署页选择你创建的 `cloudnote-db`，或让 Cloudflare 新建后再初始化
+1. 在 Cloudflare 控制台确认 `cloudnote-db` 存在，并复制真实的 database ID
+2. 在 Fork 的 `wrangler.jsonc` 中填入这个 ID（不要填原作者的 ID）
+3. 确认 Cloudflare 项目连接的是正确的 Fork 和 `master` 分支
 4. 确认 Deploy command 是 `npm run deploy`
 5. 重新部署
 
-如果部署成功但注册时报 `no such table: captchas`，说明 Deploy command 用了默认的 `npx wrangler deploy`，没有执行数据库初始化；改成 `npm run deploy` 后重新部署。
+也可以删除 `database_id`，让 Wrangler 自动创建 D1；创建后再按网页部署第 2 节的 SQL 初始化。
+
+如果部署成功但注册时报 `no such table: captchas`，请回到「创建并初始化 D1」按图片教程执行 `init_cloudnote_db.sql`，并确认 Deploy command 是 `npm run deploy`。
 
 ### 手动 CLI 部署提示 database not found
 
-如果你不使用 Deploy Button，而是手动执行 `npm run deploy`，需要先创建 D1，并把 `database_id` 填入 `wrangler.jsonc`。
+如果你不使用网页部署，而是手动执行 `npm run deploy`，需要先创建 D1，并把**自己的** `database_id` 填入 `wrangler.jsonc`。
 
-Deploy Button 会自动创建 D1；本地 CLI 也可以直接使用 `npm run deploy:auto`。
+本地 CLI 也可以直接使用 `npm run deploy:auto`，它会自动复用/创建 D1。
 
 ### 本地验证码图片不显示
 
