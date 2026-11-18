@@ -191,36 +191,53 @@ GitHub 会打开授权页：
 >
 > GitHub → Settings → Applications → Cloudflare Workers and Pages → Configure → Repository access → 添加你的仓库。
 
-### 6. 选择仓库并配置项目
+### 6. 选择仓库
 
-回到 Cloudflare 创建应用页面：
+GitHub 授权完成后，回到 Cloudflare 创建应用页面：
 
-- **Repository**：你的 Fork
-- **Branch**：`master`
+1. 选择你的 GitHub 账号
+2. 在仓库列表中选择 `cloudnote`（你的 Fork）
+3. 点击 **Next**
+
+![选择仓库](<image/网页部署步骤4.png>)
+
+### 7. 配置应用并部署
+
+在 **Set up your application** 页面填写：
+
 - **Project name**：`cloudnote`
-- **Root directory**：`/`
 - **Build command**：留空（项目没有构建步骤）
 - **Deploy command**：`npm run deploy`
-
-> 如果默认显示 `npx wrangler deploy`，请改成 `npm run deploy`。这个命令会先执行 `db:init`（幂等），再部署 Worker。
+  - 图中默认是 `npx wrangler deploy`，请改成 `npm run deploy`
+  - 这个命令会先执行 `db:init`（幂等），再部署 Worker
+- **Preview command**：留空
+- **Branch**：`master`（如果页面出现）
+- **Root directory**：`/`（如果页面出现）
 
 如果配置页要求添加 D1 绑定：
 
 - Binding：`DB`
 - Database：选择步骤 1 创建的 `cloudnote-db`
 
-### 7. 部署
+点击 **Deploy**。
 
-点击 **Deploy** 或 **Save and Deploy**，Cloudflare Workers Builds 会：
+![配置应用](<image/网页部署步骤5.png>)
 
-1. 安装依赖
-2. 执行 `npm run deploy`
-3. 初始化数据库并部署 Worker
+### 8. 打开 Worker 地址
 
-完成后访问 Cloudflare 给出的地址。
+部署完成后：
+
+1. 打开该 Worker
+2. 进入 **Domains** 标签
+3. 打开 **Production** 右侧开关
+4. 使用 `https://cloudnote.<你的子域>.workers.dev` 访问
+5. 可选：点击 **Add Domain** 绑定自定义域名
+
+![访问地址](<image/网页部署步骤6.png>)
 
 - 默认管理员：`admin / 123456aaa`，请立即修改
 - 如果部署日志显示数据库不存在，检查 Fork 中 `wrangler.jsonc` 的 `database_id` 是否是步骤 2 复制的 ID
+- 如果注册时报 `no such table: captchas`，请按步骤 2 的 SQL 手动初始化 D1
 
 ### 本地 CLI 部署（可选，需要先 clone）
 
