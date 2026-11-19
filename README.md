@@ -24,9 +24,9 @@
 
 ## 演示地址
 
-演示地址：https://cloudnote.puzechuan8.workers.dev/
-用户名：test
-密码：test1234
+# 演示地址：https://cloudnote.puzechuan8.workers.dev/
+# 用户名：test
+# 密码：test1234
 
 需要科学上网访问，请不要在上面保存重要内容，当前演示账号权限只能保存8条笔记，过期会被清理。
 
