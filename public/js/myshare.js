@@ -54,7 +54,8 @@ function showLoadingState() {
   listStateText.textContent = '加载分享链接...';
   removeLoginLink();
   shareList.hidden = true;
-  clearAllBtn.hidden = true;
+  // 刷新已有列表时保留「全部删除」，避免按钮行塌缩成单个按钮
+  if (!shares.length) clearAllBtn.hidden = true;
 }
 
 function removeLoginLink() {
@@ -224,6 +225,7 @@ async function loadShares() {
   if (loading) return;
   loading = true;
   refreshBtn.disabled = true;
+  clearAllBtn.disabled = true;
   countEl.textContent = '—';
   showLoadingState();
 
@@ -260,6 +262,7 @@ async function loadShares() {
   } finally {
     loading = false;
     refreshBtn.disabled = false;
+    clearAllBtn.disabled = false;
   }
 }
 
