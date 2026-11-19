@@ -9,6 +9,18 @@
 
 ---
 
+## 效果图
+
+桌面端与移动端界面预览：
+
+![cloudnote 桌面端](style/效果图-桌面端.png)
+
+<p align="center">
+  <img src="style/效果图-移动端.png" alt="cloudnote 移动端" width="320">
+</p>
+
+---
+
 ## 功能
 
 - 笔记新建、重命名、编辑、删除、保存
