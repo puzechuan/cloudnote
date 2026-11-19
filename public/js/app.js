@@ -299,7 +299,7 @@ async function showAuthModal(prefillUsername = ''){
 
     const regNote = document.createElement('p');
     regNote.className = 'auth-note';
-    regNote.textContent = '管理员暂未开放新用户注册';
+    regNote.textContent = 'cloudnote暂未开放新用户注册';
     regNote.hidden = registrationEnabled;
 
     const fields = document.createElement('div');
