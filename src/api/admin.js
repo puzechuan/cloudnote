@@ -4,6 +4,7 @@ import { hashPassword } from '../lib/crypto.js';
 import { json, readJson } from '../lib/http.js';
 import { deleteSessionsForUser } from '../db/sessions.js';
 import { removeAllForUser } from '../db/notebooks.js';
+import { isRegistrationEnabled, setRegistrationEnabled } from '../db/settings.js';
 import {
   deleteUser,
   findById,
@@ -30,6 +31,36 @@ export async function list(request, env) {
   } catch (error) {
     console.error('管理员获取用户列表失败:', error);
     return json({ error: '获取用户列表失败: ' + error.message }, 500);
+  }
+}
+
+export async function getSettings(request, env) {
+  const { response } = await requireEmperor(request, env);
+  if (response) return response;
+
+  try {
+    return json({ registrationEnabled: await isRegistrationEnabled(env) });
+  } catch (error) {
+    console.error('管理员获取系统设置失败:', error);
+    return json({ error: '获取系统设置失败: ' + error.message }, 500);
+  }
+}
+
+export async function updateSettings(request, env) {
+  const { response } = await requireEmperor(request, env);
+  if (response) return response;
+
+  try {
+    const data = await readJson(request);
+    if (typeof data.registrationEnabled !== 'boolean') {
+      return json({ error: 'registrationEnabled 必须是布尔值' }, 400);
+    }
+
+    await setRegistrationEnabled(env, data.registrationEnabled);
+    return json({ ok: true, registrationEnabled: data.registrationEnabled });
+  } catch (error) {
+    console.error('管理员更新系统设置失败:', error);
+    return json({ error: '更新系统设置失败: ' + error.message }, 500);
   }
 }
 

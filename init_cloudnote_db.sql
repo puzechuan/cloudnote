@@ -63,6 +63,15 @@ CREATE TABLE IF NOT EXISTS captchas (
 CREATE INDEX IF NOT EXISTS idx_captchas_expire_at
   ON captchas (expire_at);
 
+-- ------------------------------------------------------------------ 系统设置
+CREATE TABLE IF NOT EXISTS settings (
+  key   TEXT PRIMARY KEY,
+  value TEXT
+);
+
+-- 默认允许新用户注册；皇帝可在管理面板中关闭。
+INSERT OR IGNORE INTO settings (key, value) VALUES ('registration_enabled', '1');
+
 -- ------------------------------------------------------------------ 种子账号
 -- 默认管理员：admin / 123456aaa
 -- 首次登录后请立即修改密码，不要在生产环境长期使用默认凭据。

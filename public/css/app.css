@@ -1157,6 +1157,10 @@ body.signed-out .sidebar {
   border-radius: var(--radius-pill);
 }
 
+.auth-tabs[hidden] {
+  display: none;
+}
+
 .auth-tabs button {
   flex: 1;
   padding: 9px 12px;
@@ -1176,6 +1180,18 @@ body.signed-out .sidebar {
   background: var(--accent);
   color: var(--on-accent);
   box-shadow: var(--shadow-sm);
+}
+
+.auth-note {
+  margin: 0 0 16px;
+  padding: 0 2px;
+  color: var(--fg-muted);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.auth-note[hidden] {
+  display: none;
 }
 
 .auth-fields {

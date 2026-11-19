@@ -601,6 +601,103 @@ test('管理员后台：鉴权、改角色、重置密码与删除用户', async
   assert.equal(res.data.error, '用户不存在');
 });
 
+test('皇帝后台：注册开关控制新用户注册', async () => {
+  const { env } = await createEnv();
+
+  // 先注册一个已有用户，关闭注册后它仍应能登录和保持会话。
+  let res = await call(env, '/api/register', {
+    method: 'POST',
+    body: { username: 'existing', password: 'existing-pass' }
+  });
+  assert.equal(res.status, 200);
+  const existingCookie = res.cookie;
+
+  res = await call(env, '/api/registration');
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.data, { enabled: true });
+
+  // 未登录和普通用户都不能读写设置。
+  res = await call(env, '/api/admin/settings');
+  assert.equal(res.status, 403);
+  res = await call(env, '/api/admin/settings', { cookie: existingCookie });
+  assert.equal(res.status, 403);
+  res = await call(env, '/api/admin/settings', {
+    method: 'PUT',
+    cookie: existingCookie,
+    body: { registrationEnabled: false }
+  });
+  assert.equal(res.status, 403);
+
+  res = await call(env, '/api/login', {
+    method: 'POST',
+    body: { username: 'admin', password: '123456aaa' }
+  });
+  assert.equal(res.status, 200);
+  const adminCookie = res.cookie;
+
+  res = await call(env, '/api/admin/settings', { cookie: adminCookie });
+  assert.equal(res.status, 200);
+  assert.equal(res.data.registrationEnabled, true);
+
+  res = await call(env, '/api/admin/settings', {
+    method: 'PUT',
+    cookie: adminCookie,
+    body: {}
+  });
+  assert.equal(res.status, 400);
+
+  // 关闭注册。
+  res = await call(env, '/api/admin/settings', {
+    method: 'PUT',
+    cookie: adminCookie,
+    body: { registrationEnabled: false }
+  });
+  assert.equal(res.status, 200);
+  assert.equal(res.data.registrationEnabled, false);
+
+  res = await call(env, '/api/registration');
+  assert.deepEqual(res.data, { enabled: false });
+
+  res = await call(env, '/api/register', {
+    method: 'POST',
+    body: { username: 'blocked', password: 'blocked-pass' }
+  });
+  assert.equal(res.status, 403);
+  assert.match(res.data.error, /关闭/);
+
+  // 已注册用户不受影响：密码登录、旧会话都仍然有效。
+  res = await call(env, '/api/login', {
+    method: 'POST',
+    body: { username: 'existing', password: 'existing-pass' }
+  });
+  assert.equal(res.status, 200);
+
+  res = await call(env, '/api/me', { cookie: existingCookie });
+  assert.equal(res.data.user.username, 'existing');
+
+  res = await call(env, '/api/login', {
+    method: 'POST',
+    body: { username: 'blocked', password: 'blocked-pass' }
+  });
+  assert.equal(res.status, 400);
+  assert.equal(res.data.error, '用户不存在');
+
+  // 重新开启后可以继续注册。
+  res = await call(env, '/api/admin/settings', {
+    method: 'PUT',
+    cookie: adminCookie,
+    body: { registrationEnabled: true }
+  });
+  assert.equal(res.status, 200);
+  assert.equal(res.data.registrationEnabled, true);
+
+  res = await call(env, '/api/register', {
+    method: 'POST',
+    body: { username: 'after', password: 'after-pass' }
+  });
+  assert.equal(res.status, 200);
+});
+
 test('我的分享：普通用户列出并撤销自己的分享链接', async () => {
   const { env } = await createEnv();
 

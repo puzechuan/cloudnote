@@ -14,6 +14,7 @@ export async function handleApi(request, env) {
 
   try {
     if (path === '/register' && request.method === 'POST') return auth.register(request, env);
+    if (path === '/registration' && request.method === 'GET') return auth.registrationStatus(request, env);
     if (path === '/login' && request.method === 'POST') return auth.login(request, env);
     if (path === '/logout' && request.method === 'POST') return auth.logout(request, env);
     if (path === '/captcha' && request.method === 'GET') return captcha.issue(request, env);
@@ -50,6 +51,8 @@ export async function handleApi(request, env) {
       }
     }
 
+    if (path === '/admin/settings' && request.method === 'GET') return admin.getSettings(request, env);
+    if (path === '/admin/settings' && request.method === 'PUT') return admin.updateSettings(request, env);
     if (path === '/admin/users' && request.method === 'GET') return admin.list(request, env);
 
     if (path.startsWith('/admin/users/') && request.method === 'POST') {

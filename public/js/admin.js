@@ -13,6 +13,8 @@ const listStateText = document.getElementById('listStateText');
 const stateSpinner = document.getElementById('stateSpinner');
 const countEl = document.getElementById('userCount');
 const refreshBtn = document.getElementById('refreshBtn');
+const registrationSwitch = document.getElementById('registrationSwitch');
+const registrationState = document.getElementById('registrationState');
 
 const ACTION_LABELS = {
   'set-expire': '设置过期',
@@ -39,6 +41,7 @@ const ROLE_CLASS = {
 let currentUserId = '';
 let lastTrigger = null;
 let loading = false;
+let savingSettings = false;
 let toastTimer = null;
 
 function showToast(message, duration = 3000) {
@@ -171,6 +174,73 @@ async function loadUserList() {
   }
 }
 
+function renderRegistrationState(enabled) {
+  registrationSwitch.checked = enabled;
+  registrationState.textContent = enabled ? '已开启' : '已关闭';
+  registrationState.classList.toggle('is-on', enabled);
+}
+
+async function loadSettings() {
+  registrationSwitch.disabled = true;
+  registrationState.textContent = '加载中...';
+  registrationState.classList.remove('is-on');
+
+  let loaded = false;
+  try {
+    const res = await fetch('/api/admin/settings', {
+      credentials: 'same-origin',
+      cache: 'no-store'
+    });
+    const result = await res.json();
+
+    if (!res.ok || result.error) {
+      throw new Error(result.error || 'HTTP ' + res.status);
+    }
+
+    renderRegistrationState(!!result.registrationEnabled);
+    loaded = true;
+  } catch (error) {
+    registrationState.textContent = '加载失败';
+    showToast('加载注册设置失败：' + error.message, 5000);
+  } finally {
+    registrationSwitch.disabled = !loaded;
+  }
+}
+
+async function saveRegistrationSetting() {
+  if (savingSettings) return;
+
+  const next = registrationSwitch.checked;
+  const previous = !next;
+  savingSettings = true;
+  registrationSwitch.disabled = true;
+  registrationState.textContent = '保存中...';
+  registrationState.classList.remove('is-on');
+
+  try {
+    const res = await fetch('/api/admin/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ registrationEnabled: next })
+    });
+    const result = await res.json();
+
+    if (!res.ok || !result.ok) {
+      throw new Error(result.error || 'HTTP ' + res.status);
+    }
+
+    renderRegistrationState(!!result.registrationEnabled);
+    showToast(next ? '已开启新用户注册' : '已关闭新用户注册');
+  } catch (error) {
+    renderRegistrationState(previous);
+    showToast('保存注册设置失败：' + error.message, 5000);
+  } finally {
+    savingSettings = false;
+    registrationSwitch.disabled = false;
+  }
+}
+
 function openModal(user, trigger) {
   currentUserId = user.id;
   lastTrigger = trigger || null;
@@ -274,7 +344,11 @@ actionType.addEventListener('change', toggleActionGroups);
 document.getElementById('modalClose').addEventListener('click', closeModal);
 document.getElementById('cancelBtn').addEventListener('click', closeModal);
 submitBtn.addEventListener('click', submitAction);
-refreshBtn.addEventListener('click', loadUserList);
+registrationSwitch.addEventListener('change', saveRegistrationSetting);
+refreshBtn.addEventListener('click', () => {
+  loadSettings();
+  loadUserList();
+});
 
 modal.addEventListener('click', (event) => {
   if (event.target === modal) closeModal();
@@ -287,4 +361,5 @@ document.addEventListener('keydown', (event) => {
 });
 
 loadMe();
+loadSettings();
 loadUserList();

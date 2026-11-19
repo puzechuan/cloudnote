@@ -28,13 +28,38 @@
   <main class="page">
     <div class="page-head">
       <div class="page-heading">
-        <h1 class="page-title">用户管理</h1>
+        <h1 class="page-title">管理面板</h1>
+        <p class="page-subtitle">管理注册开关与用户账号</p>
       </div>
       <div class="page-actions">
         <span class="count-pill" id="userCount">—</span>
         <button class="btn btn-refresh" id="refreshBtn" type="button">刷新</button>
       </div>
     </div>
+
+    <section class="settings-card" aria-label="注册设置">
+      <div class="setting-row">
+        <div class="setting-copy">
+          <div class="setting-title" id="registrationTitle">允许新用户注册</div>
+          <p class="setting-desc" id="registrationDesc">
+            关闭后，新用户将无法注册；已注册用户登录和使用不受影响。
+          </p>
+        </div>
+        <div class="setting-control">
+          <span class="setting-state" id="registrationState">—</span>
+          <label class="switch">
+            <input
+              type="checkbox"
+              id="registrationSwitch"
+              role="switch"
+              aria-labelledby="registrationTitle"
+              aria-describedby="registrationDesc"
+            >
+            <span class="switch-track" aria-hidden="true"></span>
+          </label>
+        </div>
+      </div>
+    </section>
 
     <section class="list-card" aria-label="用户列表">
       <div class="list-state" id="listState">

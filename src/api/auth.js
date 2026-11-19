@@ -10,6 +10,7 @@ import {
   setSessionCookie
 } from '../lib/http.js';
 import { createSession, deleteSession, deleteSessionsForUser } from '../db/sessions.js';
+import { isRegistrationEnabled } from '../db/settings.js';
 import {
   createUser,
   findCredentials,
@@ -18,8 +19,23 @@ import {
   updatePassword
 } from '../db/users.js';
 
+/** 公开接口：当前是否允许新用户注册。 */
+export async function registrationStatus(_request, env) {
+  try {
+    return json({ enabled: await isRegistrationEnabled(env) });
+  } catch (error) {
+    console.error('获取注册开关失败:', error);
+    // 读取失败时不阻断注册入口，真正的限制仍由 register 接口校验。
+    return json({ enabled: true });
+  }
+}
+
 export async function register(request, env) {
   try {
+    if (!(await isRegistrationEnabled(env))) {
+      return json({ error: '管理员已关闭新用户注册' }, 403);
+    }
+
     const data = await readJson(request);
     const { username, password } = data;
 

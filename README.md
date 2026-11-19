@@ -38,6 +38,7 @@
   - 仅保存验证码哈希
 - 皇帝管理员面板
   - 用户列表、角色调整、重置密码、设置过期、删除用户
+  - 可开关新用户注册，关闭后已注册用户登录和使用不受影响
   - 普通用户不可访问
 - 未登录状态
   - 隐藏搜索、导入、新建、保存、导出、分享等入口
@@ -168,6 +169,7 @@ npm run dev
 - `sessions`
 - `shares`
 - `captchas`
+- `settings`
 
 初始化脚本是幂等的，重复执行不会清空已有数据。
 
@@ -334,7 +336,7 @@ npm run db:create
 
 该初始化会执行项目根目录的 `init_cloudnote_db.sql`，一次性创建全部表、索引和种子数据：
 
-- `users`、`notebooks`、`sessions`、`shares`、`captchas`
+- `users`、`notebooks`、`sessions`、`shares`、`captchas`、`settings`
 - 相关索引
 - 默认 `admin` 种子账号
 
@@ -436,6 +438,7 @@ npx wrangler d1 execute DB --remote --yes --command "DELETE FROM users WHERE use
 | `sessions` | 登录会话 token、用户、过期时间 |
 | `shares` | 分享 token、笔记 ID、过期时间 |
 | `captchas` | 注册验证码 ID、哈希、过期时间 |
+| `settings` | 系统设置（如是否允许新用户注册） |
 
 默认使用 D1 存储会话与分享。代码也兼容旧版 KV 模式：
 
@@ -450,6 +453,7 @@ npx wrangler d1 execute DB --remote --yes --command "DELETE FROM users WHERE use
 - 数据库初始化集中在根目录的 [init_cloudnote_db.sql](init_cloudnote_db.sql)
 - 所有建表/索引使用 `IF NOT EXISTS`，种子账号使用 `INSERT OR IGNORE`，可以重复执行
 - 新环境执行一次即可；已有数据库重复执行不会清空数据
+- 升级已有环境时，重新执行一次 `npm run db:init`（远程）或 `npm run db:init:local`（本地）即可创建新增表
 - 如需调整表结构，请更新该文件；已有数据库需要根据实际情况手动执行 `ALTER TABLE` 等变更
 - 测试环境会自动执行该文件
 

@@ -266,7 +266,18 @@ function showModalAlert(message) {
   });
 }
 
-function showAuthModal(prefillUsername = ''){
+async function showAuthModal(prefillUsername = ''){
+  let registrationEnabled = true;
+  try {
+    const res = await fetch('/api/registration', { credentials: 'same-origin', cache: 'no-store' });
+    const status = await res.json();
+    if (res.ok && status && typeof status.enabled === 'boolean') {
+      registrationEnabled = status.enabled;
+    }
+  } catch (error) {
+    console.error('获取注册开关失败:', error);
+  }
+
   return new Promise((resolve)=>{
     const content = document.createElement('div');
 
@@ -281,6 +292,15 @@ function showAuthModal(prefillUsername = ''){
     btnReg.textContent = '注册';
     tabs.appendChild(btnLogin);
     tabs.appendChild(btnReg);
+    if (!registrationEnabled) {
+      btnReg.hidden = true;
+      tabs.hidden = true;
+    }
+
+    const regNote = document.createElement('p');
+    regNote.className = 'auth-note';
+    regNote.textContent = '管理员暂未开放新用户注册';
+    regNote.hidden = registrationEnabled;
 
     const fields = document.createElement('div');
     fields.className = 'auth-fields';
@@ -358,6 +378,7 @@ function showAuthModal(prefillUsername = ''){
     fields.appendChild(errorEl);
 
     content.appendChild(tabs);
+    content.appendChild(regNote);
     content.appendChild(fields);
 
     let mode = 'login';
