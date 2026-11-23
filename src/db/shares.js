@@ -78,8 +78,9 @@ export async function getSharedNotebookId(env, token) {
 }
 
 /**
- * 列出用户可管理的分享链接（只包含仍在的笔记）：
- * 自己笔记上的分享，或自己创建的分享（如祭司分享他人笔记）。
+ * 列出用户可管理的分享链接（只包含仍在的笔记）。
+ * 分享归创建者所有：仅列出自己创建的分享；祭司分享他人笔记不会出现在作者列表。
+ * 兼容旧数据：没有创建者记录的分享仍按笔记作者归属。
  */
 export async function listSharesByUser(env, userId) {
   await ensureCreatorsTable(env);
@@ -95,7 +96,7 @@ export async function listSharesByUser(env, userId) {
        JOIN notebooks n ON n.id = s.notebook_id
        LEFT JOIN users owner ON owner.id = n.user_id
        LEFT JOIN share_creators sc ON sc.token = s.token
-      WHERE n.user_id = ? OR sc.created_by = ?
+      WHERE sc.created_by = ? OR (sc.created_by IS NULL AND n.user_id = ?)
       ORDER BY s.expire_at DESC
       LIMIT 200`
   )
@@ -167,7 +168,7 @@ export function updateShareExpiry(env, token, expireAt) {
     .run();
 }
 
-/** 删除用户可管理的全部分享（自己笔记上的，或自己创建的），并清空对应笔记的 shared_token。 */
+/** 删除用户可管理的全部分享（自己创建的；旧分享按笔记作者归属），并清空对应笔记的 shared_token。 */
 export async function deleteSharesByUser(env, userId) {
   await ensureCreatorsTable(env);
   const { results } = await env.DB.prepare(
@@ -175,7 +176,7 @@ export async function deleteSharesByUser(env, userId) {
        FROM shares s
        JOIN notebooks n ON n.id = s.notebook_id
        LEFT JOIN share_creators sc ON sc.token = s.token
-      WHERE n.user_id = ? OR sc.created_by = ?`
+      WHERE sc.created_by = ? OR (sc.created_by IS NULL AND n.user_id = ?)`
   )
     .bind(userId, userId)
     .all();

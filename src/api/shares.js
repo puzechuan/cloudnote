@@ -11,6 +11,16 @@ import {
   updateShareExpiry
 } from '../db/shares.js';
 
+/**
+ * 判断用户是否可管理该分享：分享归创建者所有。
+ * 有创建者记录时只有创建者可管理；旧分享（无记录）仍按笔记作者归属。
+ */
+async function canManageShare(env, share, user) {
+  if (!share || !share.notebook_id) return false;
+  if (share.created_by) return share.created_by === user.id;
+  return Boolean(await findByIdForUser(env, share.notebook_id, user.id));
+}
+
 /** 当前用户创建的全部分享链接。 */
 export async function list(request, env) {
   const user = await getSessionUser(request, env);
@@ -92,9 +102,7 @@ export async function updateExpiry(request, env, token) {
     const share = await findShare(env, token);
     if (!share || !share.notebook_id) return json({ error: '分享不存在' }, 404);
 
-    // 笔记作者或链接创建者可管理（祭司分享他人笔记后由自己管理）
-    const notebook = await findByIdForUser(env, share.notebook_id, user.id);
-    if (!notebook && share.created_by !== user.id) {
+    if (!(await canManageShare(env, share, user))) {
       return json({ error: '分享不存在' }, 404);
     }
 
@@ -116,9 +124,8 @@ export async function revoke(request, env, token) {
     const share = await findShare(env, token);
     if (!share || !share.notebook_id) return json({ error: '分享不存在' }, 404);
 
-    // 笔记作者或链接创建者可撤销；返回 404 避免泄露他人令牌是否存在
-    const notebook = await findByIdForUser(env, share.notebook_id, user.id);
-    if (!notebook && share.created_by !== user.id) {
+    // 分享归创建者所有；返回 404 避免泄露他人令牌是否存在
+    if (!(await canManageShare(env, share, user))) {
       return json({ error: '分享不存在' }, 404);
     }
 

@@ -634,14 +634,30 @@ test('祭司：可查看/搜索/分享所有用户的笔记，但不可写', asy
   assert.match(res.text, /由priest-viewer分享的笔记/, '分享者应显示祭司（链接创建者），而非笔记作者');
   assert.ok(!res.text.includes('由priest-writer-a分享的笔记'));
 
-  // 分享链接同时出现在原作者与创建者（祭司）的「我的分享」中
+  // 分享归创建者所有：只出现在祭司列表，不在笔记作者的「我的分享」中
   res = await call(env, '/api/shares', { cookie: cookieA });
-  assert.ok(res.data.shares.some((s) => s.token === priestShareToken), '作者应看到该分享');
+  assert.ok(
+    !res.data.shares.some((s) => s.token === priestShareToken),
+    '祭司生成的分享不应出现在笔记作者的列表'
+  );
   res = await call(env, '/api/shares', { cookie: priestCookie });
   const priestShare = res.data.shares.find((s) => s.token === priestShareToken);
   assert.ok(priestShare, '祭司作为创建者应看到该分享');
   assert.equal(priestShare.author, 'priest-writer-a');
   assert.equal(priestShare.created_by_me, true);
+
+  // 作者不能撤销/改有效期祭司生成的分享
+  res = await call(env, `/api/shares/${priestShareToken}`, {
+    method: 'PATCH',
+    cookie: cookieA,
+    body: { days: 7 }
+  });
+  assert.equal(res.status, 404, '作者不应能管理祭司生成的分享');
+  res = await call(env, `/api/shares/${priestShareToken}`, {
+    method: 'DELETE',
+    cookie: cookieA
+  });
+  assert.equal(res.status, 404, '作者不应能撤销祭司生成的分享');
 
   // 无关第三方不能管理该分享
   res = await call(env, `/api/shares/${priestShareToken}`, {
@@ -666,6 +682,15 @@ test('祭司：可查看/搜索/分享所有用户的笔记，但不可写', asy
   res = await call(env, `/share/${priestShareToken}`);
   assert.equal(res.status, 302);
   assert.match(res.headers.get('location'), /\/404\?reason=share/);
+
+  // 作者自己生成的分享仍归作者：祭司不能撤销
+  res = await call(env, `/api/notebooks/${notebookB}/share`, { method: 'POST', cookie: cookieB });
+  const authorOwnToken = res.data.link.split('/').pop();
+  res = await call(env, `/api/shares/${authorOwnToken}`, {
+    method: 'DELETE',
+    cookie: priestCookie
+  });
+  assert.equal(res.status, 404, '祭司不应能撤销作者自己生成的分享');
 
   // 原作者数据未被改动（分享与撤销不修改笔记内容/归属）
   res = await call(env, `/api/notebooks/${notebookA}`, { cookie: cookieA });
