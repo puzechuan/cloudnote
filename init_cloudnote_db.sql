@@ -53,6 +53,16 @@ CREATE TABLE IF NOT EXISTS shares (
 CREATE INDEX IF NOT EXISTS idx_shares_notebook
   ON shares (notebook_id);
 
+-- 分享链接的创建者：与笔记作者解耦，使祭司能管理自己生成的分享。
+-- 管理权 = 笔记作者 或 链接创建者；旧的分享没有此记录，仍按笔记作者管理。
+CREATE TABLE IF NOT EXISTS share_creators (
+  token      TEXT PRIMARY KEY,
+  created_by TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_share_creators_user
+  ON share_creators (created_by);
+
 -- ------------------------------------------------------------------ 验证码
 CREATE TABLE IF NOT EXISTS captchas (
   id        TEXT PRIMARY KEY,

@@ -32,6 +32,7 @@ let clearingAll = false;
 let expiryTarget = null;
 let expiryTrigger = null;
 let savingExpiry = false;
+let currentUsername = '';
 
 function showToast(message, duration = 3000) {
   clearTimeout(toastTimer);
@@ -134,6 +135,16 @@ function createShareRow(share) {
 
   const meta = document.createElement('div');
   meta.className = 'share-meta';
+
+  // 祭司生成的分享挂在他人笔记上，标注作者避免混淆
+  if (share.author && share.author !== currentUsername) {
+    const author = document.createElement('span');
+    author.textContent = '作者：' + share.author;
+    meta.appendChild(author);
+    const dot = document.createElement('span');
+    dot.className = 'dot';
+    meta.appendChild(dot);
+  }
 
   const expiry = document.createElement('span');
   expiry.textContent = statusInfo.meta;
@@ -520,6 +531,7 @@ async function loadMe() {
       const pill = document.getElementById('accountName');
       pill.textContent = data.user.username;
       pill.hidden = false;
+      currentUsername = data.user.username;
       return data.user;
     }
   } catch (error) {

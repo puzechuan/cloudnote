@@ -38,8 +38,8 @@ function applyWritePermissions() {
   if (saveBtn) saveBtn.hidden = readOnly;
   // 分享按钮对所有人可用（祭司可分享任意用户的笔记）。
   if (shareBtn) shareBtn.hidden = false;
-  // 祭司名下没有笔记，「我的分享」始终为空，隐藏该入口。
-  if (myShareBtn) myShareBtn.hidden = readOnly;
+  // 「我的分享」对所有人可用：祭司可在此管理自己生成的分享链接。
+  if (myShareBtn) myShareBtn.hidden = false;
 
   const shareAction = notebookMenu.querySelector('[data-action="share"]');
   const deleteAction = notebookMenu.querySelector('[data-action="delete"]');

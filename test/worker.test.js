@@ -463,6 +463,55 @@ test('搜索笔记：标题与内容、大小写、特殊字符与用户隔离',
   assert.equal(res.data.notebooks.length, 0);
 });
 
+test('兼容仅 wrangler deploy：share_creators 表不存在时自动创建', async () => {
+  const { env, sqlite } = await createEnv();
+
+  // 模拟生产库未执行 init SQL：删掉创建者表
+  sqlite.prepare('DROP TABLE IF EXISTS share_creators').run();
+  assert.equal(
+    sqlite.prepare("SELECT COUNT(*) AS c FROM sqlite_master WHERE name='share_creators'").get().c,
+    0
+  );
+
+  // 作者建笔记，祭司首次分享应自动建表并记录创建者
+  let res = await call(env, '/api/register', {
+    method: 'POST',
+    body: { username: 'legacy-owner', password: 'pass-1234' }
+  });
+  const ownerCookie = res.cookie;
+  res = await call(env, '/api/notebooks', {
+    method: 'POST',
+    cookie: ownerCookie,
+    body: { title: '旧环境的笔记', content: 'x' }
+  });
+  const notebook = res.data.id;
+
+  res = await call(env, '/api/register', {
+    method: 'POST',
+    body: { username: 'legacy-priest', password: 'pass-1234' }
+  });
+  const priestCookie = res.cookie;
+  const priestId = sqlite
+    .prepare('SELECT id FROM users WHERE username = ?')
+    .get('legacy-priest').id;
+  sqlite.prepare('UPDATE users SET role = ? WHERE id = ?').run('祭司', priestId);
+
+  res = await call(env, `/api/notebooks/${notebook}/share`, {
+    method: 'POST',
+    cookie: priestCookie
+  });
+  assert.equal(res.status, 200, '表不存在时分享应成功');
+
+  assert.equal(
+    sqlite.prepare("SELECT COUNT(*) AS c FROM sqlite_master WHERE name='share_creators'").get().c,
+    1,
+    '应自动建表'
+  );
+  const token = res.data.link.split('/').pop();
+  res = await call(env, '/api/shares', { cookie: priestCookie });
+  assert.ok(res.data.shares.some((s) => s.token === token), '祭司应能列出自己创建的分享');
+});
+
 test('祭司：可查看/搜索/分享所有用户的笔记，但不可写', async () => {
   const { env, sqlite } = await createEnv();
 
@@ -554,19 +603,103 @@ test('祭司：可查看/搜索/分享所有用户的笔记，但不可写', asy
   assert.equal(res.status, 200);
   assert.match(res.text, /甲的秘密/);
 
-  // 分享链接归在原作者名下，作者可在「我的分享」看到并撤销
+  // 分享链接同时出现在原作者与创建者（祭司）的「我的分享」中
   res = await call(env, '/api/shares', { cookie: cookieA });
   assert.ok(res.data.shares.some((s) => s.token === priestShareToken), '作者应看到该分享');
   res = await call(env, '/api/shares', { cookie: priestCookie });
-  assert.ok(!res.data.shares.some((s) => s.token === priestShareToken), '祭司名下不应出现该分享');
+  const priestShare = res.data.shares.find((s) => s.token === priestShareToken);
+  assert.ok(priestShare, '祭司作为创建者应看到该分享');
+  assert.equal(priestShare.author, 'priest-writer-a');
+  assert.equal(priestShare.created_by_me, true);
 
-  // 原作者数据未被改动（分享不修改笔记内容）
+  // 无关第三方不能管理该分享
+  res = await call(env, `/api/shares/${priestShareToken}`, {
+    method: 'PATCH',
+    cookie: cookieB,
+    body: { days: 7 }
+  });
+  assert.equal(res.status, 404);
+
+  // 祭司可管理自己生成的分享：改有效期 + 撤销
+  res = await call(env, `/api/shares/${priestShareToken}`, {
+    method: 'PATCH',
+    cookie: priestCookie,
+    body: { days: 7 }
+  });
+  assert.equal(res.status, 200);
+  res = await call(env, `/api/shares/${priestShareToken}`, {
+    method: 'DELETE',
+    cookie: priestCookie
+  });
+  assert.equal(res.status, 200);
+  res = await call(env, `/share/${priestShareToken}`);
+  assert.equal(res.status, 302);
+  assert.match(res.headers.get('location'), /\/404\?reason=share/);
+
+  // 原作者数据未被改动（分享与撤销不修改笔记内容/归属）
   res = await call(env, `/api/notebooks/${notebookA}`, { cookie: cookieA });
   assert.equal(res.data.notebook.title, '甲的秘密');
 
   // 普通用户依然只能看到自己的笔记
   res = await call(env, '/api/notebooks', { cookie: cookieA });
   assert.deepEqual(res.data.notebooks.map((n) => n.id), [notebookA]);
+});
+
+test('祭司：一键清空只删自己创建的分享，不影响作者自己的分享', async () => {
+  const { env, sqlite } = await createEnv();
+
+  // 作者建两篇笔记：一篇留给祭司分享，一篇自己生成分享
+  let res = await call(env, '/api/register', {
+    method: 'POST',
+    body: { username: 'owner-user', password: 'pass-1234' }
+  });
+  const ownerCookie = res.cookie;
+  const makeNote = async (title) => {
+    const r = await call(env, '/api/notebooks', {
+      method: 'POST',
+      cookie: ownerCookie,
+      body: { title, content: 'x' }
+    });
+    return r.data.id;
+  };
+  const priestTarget = await makeNote('给祭司分享的笔记');
+  const ownerNotebook = await makeNote('作者自己的笔记');
+  res = await call(env, `/api/notebooks/${ownerNotebook}/share`, {
+    method: 'POST',
+    cookie: ownerCookie
+  });
+  const ownerToken = res.data.link.split('/').pop();
+
+  // 提升第二人为祭司，由祭司分享作者的第一篇笔记（首次生成，创建者=祭司）
+  res = await call(env, '/api/register', {
+    method: 'POST',
+    body: { username: 'priest-clear', password: 'pass-1234' }
+  });
+  const priestCookie = res.cookie;
+  const priestId = sqlite
+    .prepare('SELECT id FROM users WHERE username = ?')
+    .get('priest-clear').id;
+  sqlite.prepare('UPDATE users SET role = ? WHERE id = ?').run('祭司', priestId);
+  res = await call(env, `/api/notebooks/${priestTarget}/share`, {
+    method: 'POST',
+    cookie: priestCookie
+  });
+  assert.equal(res.status, 200);
+  const priestToken = res.data.link.split('/').pop();
+
+  // 祭司一键清空：只删自己创建的分享
+  res = await call(env, '/api/shares', { method: 'DELETE', cookie: priestCookie });
+  assert.equal(res.status, 200);
+  assert.equal(res.data.deleted, 1);
+
+  res = await call(env, `/share/${priestToken}`);
+  assert.equal(res.status, 302, '祭司创建的分享应被清空');
+  res = await call(env, `/share/${ownerToken}`);
+  assert.equal(res.status, 200, '作者自己创建的分享应保留');
+
+  // 作者的分享列表仍完整
+  res = await call(env, '/api/shares', { cookie: ownerCookie });
+  assert.ok(res.data.shares.some((s) => s.token === ownerToken));
 });
 
 test('祭司：可由皇帝在后台分配角色，且免于过期清理', async () => {

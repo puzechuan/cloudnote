@@ -139,7 +139,7 @@ export async function share(request, env, id) {
       const existingNotebookId = await getSharedNotebookId(env, existingToken);
       if (!existingNotebookId || existingNotebookId === notebook.id) {
         if (!existingNotebookId) {
-          await createShare(env, existingToken, notebook.id);
+          await createShare(env, existingToken, notebook.id, user.id);
         }
         return json({
           ok: true,
@@ -150,7 +150,7 @@ export async function share(request, env, id) {
     }
 
     const token = genId();
-    await createShare(env, token, id);
+    await createShare(env, token, id, user.id);
     await store.setSharedToken(env, id, token);
 
     return json({

@@ -28,6 +28,8 @@ export async function list(request, env) {
         token: row.token,
         notebook_id: row.notebook_id,
         notebook_title: row.notebook_title,
+        author: row.author,
+        created_by_me: row.created_by === user.id,
         expire_at: row.expire_at,
         expired: row.expire_at != null && row.expire_at <= now
       })),
@@ -90,8 +92,11 @@ export async function updateExpiry(request, env, token) {
     const share = await findShare(env, token);
     if (!share || !share.notebook_id) return json({ error: '分享不存在' }, 404);
 
+    // 笔记作者或链接创建者可管理（祭司分享他人笔记后由自己管理）
     const notebook = await findByIdForUser(env, share.notebook_id, user.id);
-    if (!notebook) return json({ error: '分享不存在' }, 404);
+    if (!notebook && share.created_by !== user.id) {
+      return json({ error: '分享不存在' }, 404);
+    }
 
     await updateShareExpiry(env, token, expireAt);
     return json({ ok: true, expire_at: expireAt });
@@ -111,9 +116,11 @@ export async function revoke(request, env, token) {
     const share = await findShare(env, token);
     if (!share || !share.notebook_id) return json({ error: '分享不存在' }, 404);
 
-    // 只能撤销自己笔记的分享，返回 404 避免泄露他人令牌是否存在
+    // 笔记作者或链接创建者可撤销；返回 404 避免泄露他人令牌是否存在
     const notebook = await findByIdForUser(env, share.notebook_id, user.id);
-    if (!notebook) return json({ error: '分享不存在' }, 404);
+    if (!notebook && share.created_by !== user.id) {
+      return json({ error: '分享不存在' }, 404);
+    }
 
     await deleteShare(env, token);
     await clearSharedToken(env, share.notebook_id, token);
