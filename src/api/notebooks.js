@@ -1,4 +1,4 @@
-import { getSessionUser } from '../auth.js';
+import { getSessionUser, isPriest } from '../auth.js';
 import { DAY_MS, LIMITS, ROLE } from '../config.js';
 import { genId } from '../lib/crypto.js';
 import { json, readJson } from '../lib/http.js';
@@ -14,11 +14,15 @@ export async function list(request, env) {
 
   try {
     if (query) {
-      const { results } = await store.searchByUser(env, user.id, query);
+      const { results } = isPriest(user)
+        ? await store.searchAll(env, query)
+        : await store.searchByUser(env, user.id, query);
       return json({ notebooks: results || [], query });
     }
 
-    const { results } = await store.listByUser(env, user.id);
+    const { results } = isPriest(user)
+      ? await store.listAll(env)
+      : await store.listByUser(env, user.id);
     return json({ notebooks: results || [] });
   } catch (error) {
     console.error('获取笔记列表失败:', error);
@@ -29,6 +33,7 @@ export async function list(request, env) {
 export async function create(request, env) {
   const user = await getSessionUser(request, env);
   if (!user) return json({ error: '未登录' }, 401);
+  if (isPriest(user)) return json({ error: '祭司为只读角色，无法新建或导入笔记' }, 403);
 
   try {
     if (user.role === ROLE.KNIGHT) {
@@ -61,7 +66,9 @@ export async function get(request, env, id) {
   if (!user) return json({ error: '未登录' }, 401);
 
   try {
-    const notebook = await store.findByIdForUser(env, id, user.id);
+    const notebook = isPriest(user)
+      ? await store.findByIdWithAuthor(env, id)
+      : await store.findByIdForUser(env, id, user.id);
     if (!notebook) return json({ error: '未找到笔记' }, 404);
     return json({ notebook });
   } catch (error) {
@@ -73,6 +80,7 @@ export async function get(request, env, id) {
 export async function update(request, env, id) {
   const user = await getSessionUser(request, env);
   if (!user) return json({ error: '未登录' }, 401);
+  if (isPriest(user)) return json({ error: '祭司为只读角色，无法编辑笔记' }, 403);
 
   try {
     const notebook = await store.findByIdForUser(env, id, user.id);
@@ -93,6 +101,7 @@ export async function update(request, env, id) {
 export async function remove(request, env, id) {
   const user = await getSessionUser(request, env);
   if (!user) return json({ error: '未登录' }, 401);
+  if (isPriest(user)) return json({ error: '祭司为只读角色，无法删除笔记' }, 403);
 
   try {
     await store.remove(env, id, user.id);
@@ -113,6 +122,7 @@ export async function remove(request, env, id) {
 export async function share(request, env, id) {
   const user = await getSessionUser(request, env);
   if (!user) return json({ error: '未登录' }, 401);
+  if (isPriest(user)) return json({ error: '祭司为只读角色，无法分享笔记' }, 403);
 
   try {
     const notebook = await store.findByIdForUser(env, id, user.id);

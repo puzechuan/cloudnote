@@ -964,6 +964,13 @@ body.signed-out .sidebar {
   background: var(--hairline);
 }
 
+.context-menu-item[hidden],
+.context-menu-divider[hidden],
+.btn[hidden],
+.nav-link[hidden] {
+  display: none;
+}
+
 /* ----------------------------------------------------------------- modals */
 
 .modal-backdrop {

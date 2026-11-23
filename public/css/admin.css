@@ -647,6 +647,13 @@ body {
   color: var(--on-accent);
 }
 
+.role-priest {
+  background: var(--surface);
+  border-color: var(--hairline-strong);
+  color: var(--fg);
+  font-style: italic;
+}
+
 .role-noble {
   background: var(--surface);
   border-color: var(--hairline-strong);

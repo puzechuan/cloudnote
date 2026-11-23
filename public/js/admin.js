@@ -34,6 +34,7 @@ const ACTION_HINTS = {
 
 const ROLE_CLASS = {
   皇帝: 'role-emperor',
+  祭司: 'role-priest',
   贵族: 'role-noble',
   骑士: 'role-knight'
 };

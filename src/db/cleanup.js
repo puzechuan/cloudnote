@@ -2,7 +2,8 @@ import { ROLE } from '../config.js';
 
 /**
  * 清理过期账号：
- * 只删除「已到过期时间、没有任何笔记、且不是皇帝」的账号及其会话。
+ * 只删除「已到过期时间、没有任何笔记、且不是皇帝或祭司」的账号及其会话。
+ * 祭司为只读角色，自身可以不拥有笔记，因此与皇帝一样豁免清理。
  * 返回删除的账号数量。
  */
 export async function cleanupExpiredAccounts(env) {
@@ -12,12 +13,12 @@ export async function cleanupExpiredAccounts(env) {
          FROM users
         WHERE users.expire_until IS NOT NULL
           AND users.expire_until <= ?
-          AND users.role <> ?
+          AND users.role NOT IN (?, ?)
           AND NOT EXISTS (
             SELECT 1 FROM notebooks WHERE notebooks.user_id = users.id
           )`
     )
-      .bind(Date.now(), ROLE.EMPEROR)
+      .bind(Date.now(), ROLE.EMPEROR, ROLE.PRIEST)
       .all();
 
     const expired = results || [];

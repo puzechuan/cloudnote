@@ -22,3 +22,8 @@ export async function getSessionUser(request, env) {
 export function isEmperor(user) {
   return user?.role === ROLE.EMPEROR;
 }
+
+/** 祭司：可查看所有用户的笔记，但为只读角色。 */
+export function isPriest(user) {
+  return user?.role === ROLE.PRIEST;
+}

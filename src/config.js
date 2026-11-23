@@ -5,11 +5,12 @@
 export const ROLE = Object.freeze({
   KNIGHT: '骑士',
   NOBLE: '贵族',
+  PRIEST: '祭司',
   EMPEROR: '皇帝'
 });
 
 /** 管理员可以设置的目标角色（不能通过后台创建皇帝）。 */
-export const ASSIGNABLE_ROLES = Object.freeze([ROLE.KNIGHT, ROLE.NOBLE]);
+export const ASSIGNABLE_ROLES = Object.freeze([ROLE.KNIGHT, ROLE.NOBLE, ROLE.PRIEST]);
 
 export const LIMITS = Object.freeze({
   /** 骑士最多创建的笔记本数量。 */

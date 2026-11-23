@@ -12,6 +12,16 @@ export function countByUser(env, userId) {
     .first();
 }
 
+/** 列出所有用户的笔记（祭司专用），附带作者名以区分归属。 */
+export function listAll(env) {
+  return env.DB.prepare(
+    `SELECT n.id, n.title, n.updated_at, length(n.content) AS char_count, u.username AS author
+       FROM notebooks n
+       LEFT JOIN users u ON u.id = n.user_id
+      ORDER BY n.updated_at DESC`
+  ).all();
+}
+
 /**
  * 标题 + 正文搜索，按更新时间倒序，并返回命中位置附近的正文摘要。
  *
@@ -44,6 +54,32 @@ export function searchByUser(env, userId, query, limit = 50) {
     .all();
 }
 
+/** 跨所有用户搜索笔记（祭司专用），附带作者名。 */
+export function searchAll(env, query, limit = 50) {
+  return env.DB.prepare(
+    `WITH matches AS (
+       SELECT n.id, n.title, n.updated_at, n.content,
+              length(n.content) AS char_count,
+              u.username AS author,
+              instr(lower(n.content), lower(?)) AS hit_pos
+       FROM notebooks n
+       LEFT JOIN users u ON u.id = n.user_id
+     )
+     SELECT id, title, updated_at, char_count, author,
+            CASE
+              WHEN hit_pos > 0 THEN substr(content, max(1, hit_pos - 24), 120)
+              WHEN length(content) > 0 THEN substr(content, 1, 120)
+              ELSE ''
+            END AS snippet
+     FROM matches
+     WHERE hit_pos > 0 OR instr(lower(title), lower(?)) > 0
+     ORDER BY updated_at DESC
+     LIMIT ?`
+  )
+    .bind(query, query, limit)
+    .all();
+}
+
 export function create(env, { id, userId, title, content }) {
   const now = Date.now();
   return env.DB.prepare(
@@ -62,6 +98,18 @@ export function findByIdForUser(env, id, userId) {
 /** 公开分享页使用，不校验所属用户。 */
 export function findById(env, id) {
   return env.DB.prepare('SELECT title, content FROM notebooks WHERE id = ?').bind(id).first();
+}
+
+/** 祭司读取任意用户的笔记：不校验所属用户，附带作者名。 */
+export function findByIdWithAuthor(env, id) {
+  return env.DB.prepare(
+    `SELECT n.id, n.title, n.content, n.updated_at, n.shared_token, u.username AS author
+       FROM notebooks n
+       LEFT JOIN users u ON u.id = n.user_id
+      WHERE n.id = ?`
+  )
+    .bind(id)
+    .first();
 }
 
 export function update(env, id, userId, { title, content }) {

@@ -463,6 +463,145 @@ test('搜索笔记：标题与内容、大小写、特殊字符与用户隔离',
   assert.equal(res.data.notebooks.length, 0);
 });
 
+test('祭司：可查看/搜索所有用户的笔记，但为只读角色', async () => {
+  const { env, sqlite } = await createEnv();
+
+  // 两名普通用户各建一篇笔记
+  let res = await call(env, '/api/register', {
+    method: 'POST',
+    body: { username: 'priest-writer-a', password: 'pass-1234' }
+  });
+  const cookieA = res.cookie;
+  res = await call(env, '/api/notebooks', {
+    method: 'POST',
+    cookie: cookieA,
+    body: { title: '甲的秘密', content: 'Alpha 内容' }
+  });
+  const notebookA = res.data.id;
+
+  res = await call(env, '/api/register', {
+    method: 'POST',
+    body: { username: 'priest-writer-b', password: 'pass-1234' }
+  });
+  const cookieB = res.cookie;
+  res = await call(env, '/api/notebooks', {
+    method: 'POST',
+    cookie: cookieB,
+    body: { title: '乙的备忘', content: 'Beta 内容' }
+  });
+  const notebookB = res.data.id;
+
+  // 第三人提升为祭司（祭司无自己的笔记）
+  res = await call(env, '/api/register', {
+    method: 'POST',
+    body: { username: 'priest-viewer', password: 'pass-1234' }
+  });
+  const priestCookie = res.cookie;
+  const priestId = sqlite
+    .prepare('SELECT id FROM users WHERE username = ?')
+    .get('priest-viewer').id;
+  sqlite.prepare('UPDATE users SET role = ? WHERE id = ?').run('祭司', priestId);
+
+  res = await call(env, '/api/me', { cookie: priestCookie });
+  assert.equal(res.data.user.role, '祭司');
+
+  // 列表：能看到所有人的笔记，且带作者名
+  res = await call(env, '/api/notebooks', { cookie: priestCookie });
+  assert.equal(res.status, 200);
+  const ids = res.data.notebooks.map((n) => n.id).sort();
+  assert.deepEqual(ids, [notebookA, notebookB].sort());
+  assert.ok(res.data.notebooks.every((n) => n.author), '每条笔记应带作者名');
+
+  // 搜索：跨所有用户命中
+  res = await call(env, '/api/notebooks?q=Alpha', { cookie: priestCookie });
+  assert.equal(res.data.notebooks.length, 1);
+  assert.equal(res.data.notebooks[0].id, notebookA);
+
+  // 读取任意用户的笔记详情
+  res = await call(env, `/api/notebooks/${notebookB}`, { cookie: priestCookie });
+  assert.equal(res.status, 200);
+  assert.equal(res.data.notebook.title, '乙的备忘');
+  assert.equal(res.data.notebook.author, 'priest-writer-b');
+
+  // 只读：新建、编辑、删除、分享均被拒绝
+  res = await call(env, '/api/notebooks', {
+    method: 'POST',
+    cookie: priestCookie,
+    body: { title: '祭司不能建', content: '' }
+  });
+  assert.equal(res.status, 403);
+  res = await call(env, `/api/notebooks/${notebookA}`, {
+    method: 'PUT',
+    cookie: priestCookie,
+    body: { title: '改了', content: '改了' }
+  });
+  assert.equal(res.status, 403);
+  res = await call(env, `/api/notebooks/${notebookA}`, {
+    method: 'DELETE',
+    cookie: priestCookie
+  });
+  assert.equal(res.status, 403);
+  res = await call(env, `/api/notebooks/${notebookA}/share`, {
+    method: 'POST',
+    cookie: priestCookie
+  });
+  assert.equal(res.status, 403);
+
+  // 原作者数据未被改动
+  res = await call(env, `/api/notebooks/${notebookA}`, { cookie: cookieA });
+  assert.equal(res.data.notebook.title, '甲的秘密');
+
+  // 普通用户依然只能看到自己的笔记
+  res = await call(env, '/api/notebooks', { cookie: cookieA });
+  assert.deepEqual(res.data.notebooks.map((n) => n.id), [notebookA]);
+});
+
+test('祭司：可由皇帝在后台分配角色，且免于过期清理', async () => {
+  const { env, sqlite } = await createEnv();
+
+  let res = await call(env, '/api/register', {
+    method: 'POST',
+    body: { username: 'priest-candidate', password: 'pass-1234' }
+  });
+  const userCookie = res.cookie;
+  const userId = sqlite
+    .prepare('SELECT id FROM users WHERE username = ?')
+    .get('priest-candidate').id;
+
+  // 非皇帝不能改角色
+  res = await call(env, `/api/admin/users/${userId}`, {
+    method: 'POST',
+    cookie: userCookie,
+    body: { action: 'change-role', role: '祭司' }
+  });
+  assert.equal(res.status, 403);
+
+  // 皇帝可分配祭司角色
+  res = await call(env, '/api/login', {
+    method: 'POST',
+    body: { username: 'admin', password: '123456aaa' }
+  });
+  const adminCookie = res.cookie;
+  res = await call(env, `/api/admin/users/${userId}`, {
+    method: 'POST',
+    cookie: adminCookie,
+    body: { action: 'change-role', role: '祭司' }
+  });
+  assert.equal(res.status, 200);
+  res = await call(env, '/api/me', { cookie: userCookie });
+  assert.equal(res.data.user.role, '祭司');
+
+  // 祭司无笔记且已过期，Cron 不应清理它
+  sqlite
+    .prepare('UPDATE users SET expire_until = ? WHERE id = ?')
+    .run(Date.now() - 1000, userId);
+  const waitUntil = [];
+  await worker.scheduled({}, env, { waitUntil: (promise) => waitUntil.push(promise) });
+  await Promise.all(waitUntil);
+  const survivor = sqlite.prepare('SELECT COUNT(*) AS c FROM users WHERE id = ?').get(userId);
+  assert.equal(survivor.c, 1);
+});
+
 test('骑士账号最多 8 个笔记本', async () => {
   const { env } = await createEnv();
 

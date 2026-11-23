@@ -11,6 +11,11 @@ const sidebar = document.getElementById('sidebar');
 const sidebarOverlay = document.getElementById('sidebarOverlay');
 const accountMenu = document.getElementById('accountMenu');
 const toast = document.getElementById('toast');
+const importBtn = document.getElementById('importBtn');
+const newBtn = document.getElementById('newBtn');
+const saveBtn = document.getElementById('saveBtn');
+const shareBtn = document.getElementById('shareBtn');
+const myShareBtn = document.getElementById('myShareBtn');
 const importInput = document.getElementById('importInput');
 const searchInput = document.getElementById('searchInput');
 const searchClear = document.getElementById('searchClear');
@@ -19,6 +24,28 @@ const sidebarActions = document.getElementById('sidebarActions');
 const notebookMenu = document.getElementById('notebookMenu');
 const editorMenu = document.getElementById('editorMenu');
 const tooltip = document.getElementById('tooltip');
+
+/** 祭司：可查看所有笔记，但为只读角色（无新建/导入/编辑/删除/分享权限）。 */
+function isPriest() {
+  return Boolean(me && me.role === '祭司');
+}
+
+/** 根据角色切换写操作入口与编辑器只读状态。 */
+function applyWritePermissions() {
+  const readOnly = isPriest();
+  if (importBtn) importBtn.hidden = readOnly;
+  if (newBtn) newBtn.hidden = readOnly;
+  if (saveBtn) saveBtn.hidden = readOnly;
+  if (shareBtn) shareBtn.hidden = readOnly;
+  if (myShareBtn) myShareBtn.hidden = readOnly;
+
+  const shareAction = notebookMenu.querySelector('[data-action="share"]');
+  const deleteAction = notebookMenu.querySelector('[data-action="delete"]');
+  const menuDivider = notebookMenu.querySelector('.context-menu-divider');
+  if (shareAction) shareAction.hidden = readOnly;
+  if (deleteAction) deleteAction.hidden = readOnly;
+  if (menuDivider) menuDivider.hidden = readOnly;
+}
 
 function showToast(message, duration = 3000) {
   toast.textContent = message;
@@ -730,6 +757,7 @@ function updateAccountArea(){
   document.body.classList.toggle('signed-out', signedOut);
   const adminItem = document.getElementById('adminPanelItem');
   if (adminItem) adminItem.hidden = !(me && me.role === '皇帝');
+  applyWritePermissions();
   if (signedOut) {
     accountMenu.classList.remove('active');
     if (document.activeElement === searchInput) searchInput.blur();
@@ -1209,6 +1237,7 @@ function createNotebookItem(nb, index) {
   const meta = document.createElement('div');
   meta.className = 'meta';
   const metaParts = [];
+  if (nb.author) metaParts.push(nb.author);
   if (nb.updated_at) metaParts.push(new Date(nb.updated_at).toLocaleString());
   if (nb.char_count !== null && nb.char_count !== undefined) {
     metaParts.push(formatCount(nb.char_count) + ' 字');
@@ -1380,27 +1409,29 @@ function updateCharCount() {
   el.textContent = formatCount(document.getElementById('content').value.length) + ' 字';
 }
 
-/** 没有选中笔记时，禁用标题与正文的编辑。 */
+/** 没有选中笔记、或当前用户为只读角色时，禁用标题与正文的编辑。 */
 function setEditorEnabled(enabled) {
   const titleInput = document.getElementById('titleInput');
   const contentInput = document.getElementById('content');
   const exportBtn = document.getElementById('exportBtn');
   const charCount = document.getElementById('charCount');
 
-  titleInput.disabled = !enabled;
-  contentInput.disabled = !enabled;
+  // 祭司可以查看（含导出）所有笔记，但正文与标题保持只读。
+  const editable = enabled && !isPriest();
+  titleInput.disabled = !editable;
+  contentInput.disabled = !editable;
   if (exportBtn) exportBtn.disabled = !enabled;
   if (charCount) {
     charCount.hidden = !enabled;
     if (!enabled) charCount.textContent = '0 字';
   }
   const signedOut = document.body.classList.contains('signed-out');
-  titleInput.placeholder = enabled
+  titleInput.placeholder = editable
     ? '请输入标题'
-    : (signedOut ? '登录后查看' : '请点左侧笔记本或新建');
-  contentInput.placeholder = enabled
+    : (enabled && isPriest() ? '只读' : (signedOut ? '登录后查看' : '请点左侧笔记本或新建'));
+  contentInput.placeholder = editable
     ? STR.createHint
-    : (signedOut ? '登录后查看' : EMPTY_EDITOR_HINT);
+    : (enabled && isPriest() ? '祭司为只读角色，无法编辑笔记' : (signedOut ? '登录后查看' : EMPTY_EDITOR_HINT));
 
   if (!enabled) ensureSidebarOpen();
   updateMenuButtonHint();
