@@ -215,9 +215,8 @@ body {
   margin-bottom: 10px;
   font-size: 11.5px;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   color: var(--fg-muted);
-  text-transform: uppercase;
 }
 
 .note-title {

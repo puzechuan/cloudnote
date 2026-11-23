@@ -314,6 +314,8 @@ test('笔记 CRUD、权限隔离与公开分享', async () => {
   assert.ok(!res.text.includes('<script>alert(1)</script>'));
   assert.match(res.text, /<span class="brand-name">cloudnote<\/span>/);
   assert.match(res.text, /href="\/css\/share\.css"/);
+  assert.match(res.text, /由writer分享的笔记/, '分享页应显示分享者（笔记作者）');
+  assert.ok(!res.text.includes('cloudnote 笔记分享'), '不应再显示旧通用文案');
   assert.match(res.text, /只读分享/);
 
   // 再次分享复用原链接，不生成新 token
@@ -512,6 +514,33 @@ test('兼容仅 wrangler deploy：share_creators 表不存在时自动创建', a
   assert.ok(res.data.shares.some((s) => s.token === token), '祭司应能列出自己创建的分享');
 });
 
+test('分享页：分享者账号被删除后降级为通用文案且不报错', async () => {
+  const { env, sqlite } = await createEnv();
+
+  let res = await call(env, '/api/register', {
+    method: 'POST',
+    body: { username: 'note-author', password: 'pass-1234' }
+  });
+  const cookie = res.cookie;
+  res = await call(env, '/api/notebooks', {
+    method: 'POST',
+    cookie,
+    body: { title: '作者笔记', content: '内容' }
+  });
+  const notebookId = res.data.id;
+  res = await call(env, `/api/notebooks/${notebookId}/share`, { method: 'POST', cookie });
+  const token = res.data.link.split('/').pop();
+
+  // 删除分享者（即作者）账号：created_by 指向的用户已不存在
+  sqlite.prepare('DELETE FROM users WHERE username = ?').run('note-author');
+
+  res = await call(env, `/share/${token}`);
+  assert.equal(res.status, 200, '账号被删后分享页仍应正常打开');
+  assert.match(res.text, /作者笔记/);
+  // 作者与创建者均不存在时降级为通用文案，不报错、不泄露残缺信息
+  assert.match(res.text, /cloudnote 笔记分享/);
+});
+
 test('祭司：可查看/搜索/分享所有用户的笔记，但不可写', async () => {
   const { env, sqlite } = await createEnv();
 
@@ -602,6 +631,8 @@ test('祭司：可查看/搜索/分享所有用户的笔记，但不可写', asy
   res = await call(env, `/share/${priestShareToken}`);
   assert.equal(res.status, 200);
   assert.match(res.text, /甲的秘密/);
+  assert.match(res.text, /由priest-viewer分享的笔记/, '分享者应显示祭司（链接创建者），而非笔记作者');
+  assert.ok(!res.text.includes('由priest-writer-a分享的笔记'));
 
   // 分享链接同时出现在原作者与创建者（祭司）的「我的分享」中
   res = await call(env, '/api/shares', { cookie: cookieA });
@@ -1295,6 +1326,7 @@ test('可选 KV 模式：会话与分享不写入 D1', async () => {
   res = await call(env, `/share/${token}`);
   assert.equal(res.status, 200);
   assert.match(res.text, /KV 笔记/);
+  assert.match(res.text, /由kvuser分享的笔记/, 'KV 模式下分享页也应显示分享者');
 
   res = await call(env, `/api/notebooks/${notebookId}/share`, { method: 'POST', cookie });
   assert.equal(res.status, 200);

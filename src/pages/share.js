@@ -1,5 +1,6 @@
-import { getSharedNotebookId } from '../db/shares.js';
-import { findById } from '../db/notebooks.js';
+import { findShare, getSharedNotebookId } from '../db/shares.js';
+import { findByIdWithAuthor } from '../db/notebooks.js';
+import { findById as findUserById } from '../db/users.js';
 import { escapeHtml, html, text } from '../lib/http.js';
 import { redirectShareNotFound } from './not-found.js';
 
@@ -10,10 +11,15 @@ function contentSnippet(content, limit = 140) {
   return flat.length > limit ? flat.slice(0, limit) + '…' : flat;
 }
 
-export function renderSharePage(title, content) {
+export function renderSharePage(title, content, sharer = null) {
   const rawTitle = title && String(title).trim();
   const noteTitle = rawTitle || '无标题笔记';
   const safeTitle = escapeHtml(noteTitle);
+  const safeSharer = sharer && String(sharer).trim();
+  // 分享者即链接创建者（如祭司分享他人笔记）；旧链接回退为笔记作者。
+  const eyebrow = safeSharer
+    ? `由${escapeHtml(safeSharer)}分享的笔记`
+    : 'cloudnote 笔记分享';
   const hasContent = typeof content === 'string' && content.trim() !== '';
   const body = hasContent
     ? `<div class="note-content">${escapeHtml(content)}</div>`
@@ -46,7 +52,7 @@ export function renderSharePage(title, content) {
   <main class="page">
     <article class="note-card">
       <header class="note-head">
-        <p class="note-eyebrow">cloudnote 笔记分享</p>
+        <p class="note-eyebrow">${eyebrow}</p>
         <h1 class="note-title">${safeTitle}</h1>
       </header>
       ${body}
@@ -66,13 +72,23 @@ export async function handleShare(request, env) {
     const match = new URL(request.url).pathname.match(/^\/share\/([^/?#]+)\/?$/);
     if (!match) return redirectShareNotFound(request);
 
-    const notebookId = await getSharedNotebookId(env, match[1]);
+    const token = match[1];
+    const notebookId = await getSharedNotebookId(env, token);
     if (!notebookId) return redirectShareNotFound(request);
 
-    const notebook = await findById(env, notebookId);
+    const notebook = await findByIdWithAuthor(env, notebookId);
     if (!notebook) return redirectShareNotFound(request);
 
-    return html(renderSharePage(notebook.title, notebook.content), 200, {
+    // 分享者优先取链接创建者（如祭司分享他人笔记），旧链接回退为笔记作者。
+    let sharer = null;
+    const share = await findShare(env, token);
+    if (share?.created_by) {
+      const creator = await findUserById(env, share.created_by);
+      sharer = creator?.username || null;
+    }
+    if (!sharer) sharer = notebook.author || null;
+
+    return html(renderSharePage(notebook.title, notebook.content, sharer), 200, {
       'Cache-Control': 'public, max-age=3600'
     });
   } catch (error) {
