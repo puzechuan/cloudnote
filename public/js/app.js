@@ -30,19 +30,21 @@ function isPriest() {
   return Boolean(me && me.role === '祭司');
 }
 
-/** 根据角色切换写操作入口与编辑器只读状态。 */
+/** 根据角色切换写操作入口与编辑器只读状态。祭司为只读角色，但保留分享能力。 */
 function applyWritePermissions() {
   const readOnly = isPriest();
   if (importBtn) importBtn.hidden = readOnly;
   if (newBtn) newBtn.hidden = readOnly;
   if (saveBtn) saveBtn.hidden = readOnly;
-  if (shareBtn) shareBtn.hidden = readOnly;
+  // 分享按钮对所有人可用（祭司可分享任意用户的笔记）。
+  if (shareBtn) shareBtn.hidden = false;
+  // 祭司名下没有笔记，「我的分享」始终为空，隐藏该入口。
   if (myShareBtn) myShareBtn.hidden = readOnly;
 
   const shareAction = notebookMenu.querySelector('[data-action="share"]');
   const deleteAction = notebookMenu.querySelector('[data-action="delete"]');
   const menuDivider = notebookMenu.querySelector('.context-menu-divider');
-  if (shareAction) shareAction.hidden = readOnly;
+  if (shareAction) shareAction.hidden = false;
   if (deleteAction) deleteAction.hidden = readOnly;
   if (menuDivider) menuDivider.hidden = readOnly;
 }

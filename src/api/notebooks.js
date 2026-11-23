@@ -122,10 +122,13 @@ export async function remove(request, env, id) {
 export async function share(request, env, id) {
   const user = await getSessionUser(request, env);
   if (!user) return json({ error: '未登录' }, 401);
-  if (isPriest(user)) return json({ error: '祭司为只读角色，无法分享笔记' }, 403);
 
   try {
-    const notebook = await store.findByIdForUser(env, id, user.id);
+    // 祭司可分享任意用户的笔记：分享只生成访问链接，不改动笔记内容。
+    // 分享记录仍按笔记作者归属，由作者在「我的分享」中管理与撤销。
+    const notebook = isPriest(user)
+      ? await store.findByIdWithAuthor(env, id)
+      : await store.findByIdForUser(env, id, user.id);
     if (!notebook) return json({ error: '未找到笔记' }, 404);
 
     const origin = new URL(request.url).origin;

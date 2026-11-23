@@ -463,7 +463,7 @@ test('搜索笔记：标题与内容、大小写、特殊字符与用户隔离',
   assert.equal(res.data.notebooks.length, 0);
 });
 
-test('祭司：可查看/搜索所有用户的笔记，但为只读角色', async () => {
+test('祭司：可查看/搜索/分享所有用户的笔记，但不可写', async () => {
   const { env, sqlite } = await createEnv();
 
   // 两名普通用户各建一篇笔记
@@ -523,7 +523,7 @@ test('祭司：可查看/搜索所有用户的笔记，但为只读角色', asyn
   assert.equal(res.data.notebook.title, '乙的备忘');
   assert.equal(res.data.notebook.author, 'priest-writer-b');
 
-  // 只读：新建、编辑、删除、分享均被拒绝
+  // 只读：新建、编辑、删除被拒绝
   res = await call(env, '/api/notebooks', {
     method: 'POST',
     cookie: priestCookie,
@@ -541,13 +541,26 @@ test('祭司：可查看/搜索所有用户的笔记，但为只读角色', asyn
     cookie: priestCookie
   });
   assert.equal(res.status, 403);
+
+  // 祭司可以分享任意用户的笔记
   res = await call(env, `/api/notebooks/${notebookA}/share`, {
     method: 'POST',
     cookie: priestCookie
   });
-  assert.equal(res.status, 403);
+  assert.equal(res.status, 200);
+  assert.match(res.data.link, /^https:\/\/example\.com\/share\/[0-9a-f]{32}$/);
+  const priestShareToken = res.data.link.split('/').pop();
+  res = await call(env, `/share/${priestShareToken}`);
+  assert.equal(res.status, 200);
+  assert.match(res.text, /甲的秘密/);
 
-  // 原作者数据未被改动
+  // 分享链接归在原作者名下，作者可在「我的分享」看到并撤销
+  res = await call(env, '/api/shares', { cookie: cookieA });
+  assert.ok(res.data.shares.some((s) => s.token === priestShareToken), '作者应看到该分享');
+  res = await call(env, '/api/shares', { cookie: priestCookie });
+  assert.ok(!res.data.shares.some((s) => s.token === priestShareToken), '祭司名下不应出现该分享');
+
+  // 原作者数据未被改动（分享不修改笔记内容）
   res = await call(env, `/api/notebooks/${notebookA}`, { cookie: cookieA });
   assert.equal(res.data.notebook.title, '甲的秘密');
 
