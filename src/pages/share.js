@@ -38,6 +38,9 @@ export function renderSharePage(title, content, sharer = null) {
   <meta property="og:site_name" content="cloudnote">
   <meta property="og:title" content="${safeTitle}">
   <meta property="og:description" content="${escapeHtml(contentSnippet(content))}">
+  <link rel="icon" href="/favicon.ico" sizes="32x32">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="stylesheet" href="/css/share.css">
 </head>
 <body>
